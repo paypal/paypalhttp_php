@@ -8,7 +8,9 @@
             "email": "code@getbraintree.com"
         }
     ],
-    "require": {},
+    "require": {
+        "ext-curl": "*"
+    },
     "require-dev": {
         "phpunit/phpunit": "^5.7"
     },

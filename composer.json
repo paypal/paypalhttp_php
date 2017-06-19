@@ -1,0 +1,20 @@
+{
+    "name": "braintree/braintreehttp",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Braintree",
+            "email": "code@getbraintree.com"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^5.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "BraintreeHttp\\": "lib/BraintreeHttp"
+        }
+    }
+}

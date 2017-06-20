@@ -3,55 +3,79 @@ namespace Test\Unit;
 
 use BraintreeHttp;
 use PHPUnit\Framework\TestCase;
+use InterNations\Component\HttpMock\PHPUnit\HttpMockTrait;
 
 class HttpClientTest extends TestCase
 {
     /**
      * @var BraintreeHttp\HttpClient
      */
-    public $basicClient;
+    private $client;
 
     /**
-     * @var BraintreeHttp\HttpClient
+     * @var BraintreeHttp\Environment
      */
-    public $googleClient;
+    private $environment;
+
+    use HttpMockTrait;
+
+    public static function setUpBeforeClass()
+    {
+        static::setUpHttpMockBeforeClass('9000', 'localhost');
+    }
+
+    public static function tearDownAfterClass()
+    {
+        static::tearDownHttpMockAfterClass();
+    }
 
     /**
      * @before
      */
     public function setupHttpClient()
     {
-        $this->basicClient = new BraintreeHttp\HttpClient(new BasicEnvironment());
-        $this->googleClient = new BraintreeHttp\HttpClient(new GoogleEnvironment());
+        $this->environment = new DevelopmentEnvironment("http://localhost:9000");
+        $this->client = new BraintreeHttp\HttpClient($this->environment);
+
+        $this->setUpHttpMock();
+    }
+
+    /**
+     * @after
+     */
+
+    public function tearDown()
+    {
+        $this->tearDownHttpMock();
     }
 
     public function testAddInjector_addsInjectorToInjectorList()
     {
         $inj = new BasicInjector();
-        $this->basicClient->addInjector($inj);
+        $this->client->addInjector($inj);
 
-        $this->assertContains($inj, $this->basicClient->injectors);
+        $this->assertContains($inj, $this->client->injectors);
     }
 
     public function testAddsMultipleInjectors_addsMultipleInjectorsToInjectorList()
     {
         $inj1 = new BasicInjector();
-        $this->basicClient->addInjector($inj1);
+        $this->client->addInjector($inj1);
 
         $inj2 = new BasicInjector();
-        $this->basicClient->addInjector($inj2);
+        $this->client->addInjector($inj2);
 
-        $this->assertArraySubset([$inj1, $inj2], $this->basicClient->injectors);
+        $this->assertArraySubset([$inj1, $inj2], $this->client->injectors);
     }
 
-    public function testExecute_callsAllInjectors()
+    public function testExecute_usesInjectorsToModifyRequest()
     {
         $injector = new BasicInjector();
-        $this->basicClient->addInjector($injector);
+        $this->client->addInjector($injector);
 
         $req = new BraintreeHttp\HttpRequest("/some-path", "GET");
 
-        $this->basicClient->execute($req);
+        $this->client->execute($req);
 
         $this->assertEquals("/some-other-path", $req->path);
     }
@@ -60,9 +84,9 @@ class HttpClientTest extends TestCase
     {
         $req = new BraintreeHttp\HttpRequest("/some-path", "GET");
 
-        $this->basicClient->execute($req);
+        $this->client->execute($req);
 
-        $this->assertEquals($this->basicClient->userAgent(), $req->headers["User-Agent"]);
+        $this->assertEquals($this->client->userAgent(), $req->headers["User-Agent"]);
     }
 
     public function testExecute_doesNotSetUserAgentIfAlreadySet()
@@ -70,53 +94,85 @@ class HttpClientTest extends TestCase
         $req = new BraintreeHttp\HttpRequest("/some-path", "GET");
         $req->headers["User-Agent"] = "Example user-agent";
 
-        $this->basicClient->execute($req);
+        $this->client->execute($req);
 
         $this->assertEquals("Example user-agent", $req->headers["User-Agent"]);
     }
 
-    public function testExecute_setsTheVerb()
+    public function testExecute_usesBodyInRequestIfPresent()
     {
-        $req = new BraintreeHttp\HttpRequest("/", "GET");
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+        $req->body = "some data";
 
-        $this->basicClient->execute($req);
+        $response = $this->client->execute($req);
 
-        $this->assertEquals("GET", $req->verb);
+        $this->http->mock
+            ->when()
+                ->methodIs("POST")
+                ->pathIs("/path")
+            ->then()
+                ->statusCode(200)
+            ->end();
+        $this->http->setUp();
+
+//        $this->assertEquals(200, $response->statusCode);
+        $this->assertSame("/path", $this->http->requests->latest()->getPath());
+
+
+        $this->assertSame('mocked body', file_get_contents('http://localhost:8082/foo'));
     }
 
-    public function testExecute_setsThePath()
+    public function testExecute_doesNotUseBodyIfNotPresent()
     {
-        $req = new BraintreeHttp\HttpRequest("/path", "GET");
 
-        $this->basicClient->execute($req);
-
-        $this->assertEquals("/path", $req->path);
     }
 
-    public function testExecute_getsATwoHundredBackFromGETtingGoogle()
+    public function textExecute_setsHeadersInRequest()
     {
-        $req = new BraintreeHttp\HttpRequest("/", "GET");
 
-        $res = $this->googleClient->execute($req);
+    }
 
-        $this->assertEquals(true, $res->successful);
-        $this->assertEquals(200, $res->code);
+    public function textExecute_setsHeadersFromResponse()
+    {
+
+    }
+
+    public function textExecute_parses200LevelResponse()
+    {
+
+    }
+
+    public function testExecute_throwsforNon200LevelResponse()
+    {
+
+    }
+
+    public function testExecute_defersToSubclassToSerialize()
+    {
+
+    }
+
+    public function testExecute_defersToSubclassToDeserialize()
+    {
+
     }
 }
 
-class GoogleEnvironment implements BraintreeHttp\Environment
+class DevelopmentEnvironment implements BraintreeHttp\Environment
 {
-    public function baseUrl()
-    {
-        return "https://www.google.com";
-    }
-}
+    /**
+     * @var string
+     */
+    private $baseUrl;
 
-class BasicEnvironment implements BraintreeHttp\Environment
-{
+    public function __construct($baseUrl)
+    {
+        $this->baseUrl = $baseUrl;
+    }
+
     public function baseUrl()
     {
-        return "https://localhost";
+        return $this->baseUrl;
     }
 }
 

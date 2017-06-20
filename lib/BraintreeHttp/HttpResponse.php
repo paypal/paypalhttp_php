@@ -6,28 +6,41 @@ class HttpResponse
     /**
      * @var integer
      */
-    public $code;
+    public $statusCode;
+
+    /**
+     * @var object
+     */
+    public $result;
 
     /**
      * @var array
      */
-    public $responseBody;
-
-    /**
-     * @var boolean
-     */
-    public $successful;
+    public $headers;
 
     /**
      * HttpResponse constructor.
-     * @param $successful boolean
-     * @param $code integer
-     * @param $responseBody array
+     * @param $statusCode integer
+     * @param $body array
+     * @param $headers array
      */
-    public function __construct($successful, $code, $responseBody)
+    public function __construct($statusCode, $body, $headers)
     {
-        $this->successful = $successful;
-        $this->code = $code;
-        $this->responseBody = $responseBody;
+        $this->statusCode = $statusCode;
+        $this->headers = $headers;
+        $this->result = $this->constructObject($body);
+    }
+
+    private function constructObject($body) {
+        $obj = new \stdClass();
+        foreach ($body as $key => $val){
+            if (is_array($val)) {
+                $obj->$key = $this->constructObject($val);
+            } else {
+                $obj->$key = $val;
+            }
+        }
+
+        return $obj;
     }
 }

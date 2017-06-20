@@ -93,9 +93,9 @@ class HttpClient
         */
 
         return new BraintreeHttp\HttpResponse(
-           $errorCode === 0,
             $errorCode === 0 ? $statusCode : $errorCode,
-            $response
+            array(),
+            array()
         );
     }
 

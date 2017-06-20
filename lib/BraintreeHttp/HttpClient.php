@@ -59,7 +59,7 @@ class HttpClient
         $curl = curl_init();
 
         # Set the headers
-        curl_setopt($curl, CURLOPT_HEADER, $httpRequest->headers);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
 
         # Set verb
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
@@ -73,30 +73,70 @@ class HttpClient
 
         # Get a response back instead of printing to page
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HEADER, 1);
 
         # Perform the curl, get a response back
         $response = curl_exec($curl);
         $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
         $errorCode = curl_errno($curl);
+        $error = curl_error($curl);
+
         curl_close($curl);
 
-        /*
-        if ($response) {
-            echo "Success!";
+        if ($errorCode > 0)
+        {
+            throw new IOException($error, $errorCode);
         }
-        else {
-            echo "Failed with error code: ";
-            echo $error_code;
-        }
-        echo " Response was: \n";
-        echo $response . "\n";
-        */
 
-        return new BraintreeHttp\HttpResponse(
+        list($headers, $body) = explode("\r\n\r\n", $response, 2);
+
+        $response = new BraintreeHttp\HttpResponse(
             $errorCode === 0 ? $statusCode : $errorCode,
-            array(),
-            array()
+            $body,
+            $this->deserializeHeaders($headers)
         );
+
+        if ($response->statusCode >= 200 && $response->statusCode < 300)
+        {
+            return $response;
+        }
+        else
+        {
+            throw new HttpException($response);
+        }
+    }
+
+    /**
+     * @param $headers string
+     * @return array
+     */
+    private function deserializeHeaders($headers)
+    {
+        $split = explode("\n", $headers);
+        $separatedHeaders = [];
+        foreach ($split as $header) {
+            list($key, $val) = explode(":", $header);
+            $separatedHeaders[$key] = trim($val);
+        }
+
+        return $separatedHeaders;
+    }
+
+    /**
+     * @param $headers array[]
+     * @return array
+     */
+    private function serializeHeaders($headers)
+    {
+        $h = [];
+        if ($headers) {
+            foreach ($headers as $key => $val) {
+               $h[] = $key . ": " . $val;
+            }
+        }
+
+        return $h;
     }
 
     public function serializeRequest(/* Request */)

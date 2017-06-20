@@ -9,9 +9,9 @@ class HttpResponse
     public $statusCode;
 
     /**
-     * @var object
+     * @var string
      */
-    public $result;
+    public $body;
 
     /**
      * @var array
@@ -28,9 +28,14 @@ class HttpResponse
     {
         $this->statusCode = $statusCode;
         $this->headers = $headers;
-        $this->result = $this->constructObject($body);
+        // $this->result = $this->constructObject($body);
+        $this->body = $body;
     }
 
+    /**
+     * @param $body object
+     * @return \stdClass
+     */
     private function constructObject($body) {
         $obj = new \stdClass();
         foreach ($body as $key => $val){

@@ -3,7 +3,8 @@ namespace Test\Unit;
 
 use BraintreeHttp;
 use PHPUnit\Framework\TestCase;
-use InterNations\Component\HttpMock\PHPUnit\HttpMockTrait;
+use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Tests\Server;
 
 class HttpClientTest extends TestCase
 {
@@ -17,35 +18,28 @@ class HttpClientTest extends TestCase
      */
     private $environment;
 
-    use HttpMockTrait;
-
     public static function setUpBeforeClass()
     {
-        static::setUpHttpMockBeforeClass(9000, "localhost");
-    }
-
-    public static function tearDownAfterClass()
-    {
-        static::tearDownHttpMockAfterClass();
+        Server::start();
     }
 
     /**
      * @before
      */
-    public function setupHttpClient()
+    public function setup()
     {
-        $this->environment = new DevelopmentEnvironment("http://localhost:9000");
-        $this->client = new BraintreeHttp\HttpClient($this->environment);
+        Server::flush();
 
-        $this->setUpHttpMock();
+        $this->environment = new DevelopmentEnvironment(Server::$url);
+        $this->client = new BraintreeHttp\HttpClient($this->environment);
     }
 
     /**
      * @after
      */
-    public function tearDown()
+    public function teardown()
     {
-        $this->tearDownHttpMock();
+
     }
 
     public function testAddInjector_addsInjectorToInjectorList()
@@ -86,6 +80,7 @@ class HttpClientTest extends TestCase
         $this->client->execute($req);
 
         $this->assertEquals($this->client->userAgent(), $req->headers["User-Agent"]);
+        $this->fail("Convert to wiremock integration test");
     }
 
     public function testExecute_doesNotSetUserAgentIfAlreadySet()
@@ -96,59 +91,107 @@ class HttpClientTest extends TestCase
         $this->client->execute($req);
 
         $this->assertEquals("Example user-agent", $req->headers["User-Agent"]);
+        $this->fail("Convert to wiremock integration test");
     }
 
     public function testExecute_usesBodyInRequestIfPresent()
     {
+        Server::enqueue([
+            new Response(200)
+        ]);
+
         $req = new BraintreeHttp\HttpRequest("/path", "POST");
         $req->body[] = "some data";
 
-        $this->http->mock
-            ->when()
-                ->methodIs("POST")
-                ->pathIs("/path")
-            ->then()
-                ->statusCode(200)
-            ->end();
-        $this->http->setUp();
-
         $res = $this->client->execute($req);
-        echo $res->statusCode;
+        $this->assertEquals(200, $res->statusCode);
 
-        echo count($this->http->requests);
-        $receivedReq = $this->http->requests->last();
+        $received = Server::received()[0];
 
-        $this->assertEquals("some data", $receivedReq->getBody());
+        $this->assertContains("some data", $received->getBody()->getContents());
     }
 
     public function testExecute_doesNotUseBodyIfNotPresent()
     {
+        Server::enqueue([
+            new Response(200)
+        ]);
 
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+
+        $this->client->execute($req);
+
+        $this->assertEquals(0, strlen(Server::received()[0]->getBody()->getContents()));
     }
 
-    public function textExecute_setsHeadersInRequest()
+    public function testExecute_setsHeadersInRequest()
     {
+        Server::enqueue([
+            new Response(200)
+        ]);
 
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+        $req->headers["Custom-Header"] = "Custom value";
+
+        $this->client->execute($req);
+
+        $this->assertEquals("Custom value", Server::received()[0]->getHeader("Custom-Header")[0]);
     }
 
-    public function textExecute_setsHeadersFromResponse()
+    public function testExecute_setsHeadersFromResponse()
     {
+        Server::enqueue([
+            new Response(200, ["Some-key" => "Some value"])
+        ]);
 
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+
+        $res = $this->client->execute($req);
+
+        $this->assertEquals("Some value", $res->headers["Some-key"]);
     }
 
-    public function textExecute_parses200LevelResponse()
+    public function testExecute_parses200LevelResponse()
     {
+        Server::enqueue([
+            new Response(200, [],'')
+        ]);
 
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+
+        $res = $this->client->execute($req);
+
+        $this->assertEquals(200, $res->statusCode);
     }
 
     public function testExecute_throwsforNon200LevelResponse()
     {
+        Server::enqueue([
+            new Response(400, ["Response-Header" => "Debug Value"],"Response body")
+        ]);
 
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+
+        try
+        {
+            $res = $this->client->execute($req);
+            $this->fail("expected execute to throw");
+        }
+        catch (BraintreeHttp\HttpException $e)
+        {
+            $this->assertEquals(400, $e->response->statusCode);
+            $this->assertArraySubset(["Response-Header" => "Debug Value"], $e->response->headers);
+            $this->assertEquals("Response body", $e->response->body);
+        }
+        catch (\Exception $e)
+        {
+            echo($e);
+            $this->fail("execute threw non-HttpException");
+        }
     }
 
     public function testExecute_defersToSubclassToSerialize()
     {
-
     }
 
     public function testExecute_defersToSubclassToDeserialize()

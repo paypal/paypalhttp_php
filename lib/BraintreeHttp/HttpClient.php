@@ -2,6 +2,8 @@
 
 namespace BraintreeHttp;
 
+use BraintreeHttp;
+
 /**
  * Class HttpClient
  * @package BraintreeHttp
@@ -39,6 +41,7 @@ class HttpClient
 
     /**
      * @param $httpRequest HttpRequest
+     * @return HttpResponse
      */
     public function execute($httpRequest)
     {
@@ -52,16 +55,48 @@ class HttpClient
             $httpRequest->headers["User-Agent"] = $this->userAgent();
         }
 
+        # Init curl
         $curl = curl_init();
+
+        # Set the headers
+        curl_setopt($curl, CURLOPT_HEADER, $httpRequest->headers);
+
+        # Set verb
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
 
+        # Set the URL
         $url = $this->environment->baseUrl() . $httpRequest->path;
         curl_setopt($curl, CURLOPT_URL, $url);
 
-        curl_setopt($curl, CURLOPT_HEADER, $httpRequest->headers);
+        # Set the body
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $httpRequest->body);
 
+        # Get a response back instead of printing to page
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+        # Perform the curl, get a response back
         $response = curl_exec($curl);
-        echo $response;
+        $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $errorCode = curl_errno($curl);
+        curl_close($curl);
+
+        /*
+        if ($response) {
+            echo "Success!";
+        }
+        else {
+            echo "Failed with error code: ";
+            echo $error_code;
+        }
+        echo " Response was: \n";
+        echo $response . "\n";
+        */
+
+        return new BraintreeHttp\HttpResponse(
+           $errorCode === 0,
+            $errorCode === 0 ? $statusCode : $errorCode,
+            $response
+        );
     }
 
     public function serializeRequest(/* Request */)

@@ -21,7 +21,7 @@ class HttpClientTest extends TestCase
 
     public static function setUpBeforeClass()
     {
-        static::setUpHttpMockBeforeClass('9000', 'localhost');
+        static::setUpHttpMockBeforeClass(9000, "localhost");
     }
 
     public static function tearDownAfterClass()
@@ -43,7 +43,6 @@ class HttpClientTest extends TestCase
     /**
      * @after
      */
-
     public function tearDown()
     {
         $this->tearDownHttpMock();
@@ -102,9 +101,7 @@ class HttpClientTest extends TestCase
     public function testExecute_usesBodyInRequestIfPresent()
     {
         $req = new BraintreeHttp\HttpRequest("/path", "POST");
-        $req->body = "some data";
-
-        $response = $this->client->execute($req);
+        $req->body[] = "some data";
 
         $this->http->mock
             ->when()
@@ -115,11 +112,13 @@ class HttpClientTest extends TestCase
             ->end();
         $this->http->setUp();
 
-//        $this->assertEquals(200, $response->statusCode);
-        $this->assertSame("/path", $this->http->requests->latest()->getPath());
+        $res = $this->client->execute($req);
+        echo $res->statusCode;
 
+        echo count($this->http->requests);
+        $receivedReq = $this->http->requests->last();
 
-        $this->assertSame('mocked body', file_get_contents('http://localhost:8082/foo'));
+        $this->assertEquals("some data", $receivedReq->getBody());
     }
 
     public function testExecute_doesNotUseBodyIfNotPresent()

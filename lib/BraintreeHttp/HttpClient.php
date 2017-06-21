@@ -164,7 +164,7 @@ class HttpClient
     /**
      * @param $responseBody string
      * @param $headers array
-     * @return object | array | string
+     * @return array | string
      */
     public function deserializeResponse($responseBody, $headers)
     {

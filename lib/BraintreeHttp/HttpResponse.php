@@ -21,19 +21,18 @@ class HttpResponse
     /**
      * HttpResponse constructor.
      * @param $statusCode integer
-     * @param $body object | array | string
+     * @param $body array | string
      * @param $headers array
      */
     public function __construct($statusCode, $body, $headers)
     {
         $this->statusCode = $statusCode;
         $this->headers = $headers;
-        // $this->result = $this->constructObject($body);
-        $this->body = $body;
+        $this->body = gettype($body) == "string" ? $body : $this->constructObject($this->body);
     }
 
     /**
-     * @param $body object
+     * @param $body array
      * @return \stdClass
      */
     private function constructObject($body) {

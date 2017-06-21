@@ -190,7 +190,7 @@ class HttpClientTest extends TestCase
         {
             $this->assertEquals(400, $e->response->statusCode);
             $this->assertArraySubset(["Response-Header" => "Debug Value"], $e->response->headers);
-            $this->assertEquals("Response body", $e->response->body);
+            $this->assertEquals("Response body", $e->response->result);
         }
         catch (\Exception $e)
         {
@@ -224,7 +224,7 @@ class HttpClientTest extends TestCase
         $client = new FancyResponseDeserializingClient($this->environment);
         $res = $client->execute($req);
 
-        $this->assertEquals('{"myJSON": "isBetterThanYourJSON"}', $res->body);
+        $this->assertEquals('{"myJSON": "isBetterThanYourJSON"}', $res->result);
     }
 }
 

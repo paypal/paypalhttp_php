@@ -51,7 +51,7 @@ class HttpClient
             $inj->inject($httpRequest);
         }
 
-        if ($httpRequest->headers["User-Agent"] === NULL)
+        if (!array_key_exists("User-Agent", $httpRequest->headers))
         {
             $httpRequest->headers["User-Agent"] = $this->userAgent();
         }
@@ -95,6 +95,7 @@ class HttpClient
     private function deserializeHeaders($headers)
     {
         $split = explode("\n", $headers);
+        array_shift($split);
         $separatedHeaders = [];
         foreach ($split as $header) {
             list($key, $val) = explode(":", $header);
@@ -150,6 +151,16 @@ class HttpClient
         {
             throw new HttpException($response);
         }
+    }
+
+    /**
+     * Return the filepath to your custom CA Cert if you intend to perform cert pinning
+     * @return string
+     */
+    protected function caFile()
+    {
+        // If this returns non-null, grab a cert from here and tack it onto the curl
+        return "";
     }
 
     /**

@@ -201,7 +201,16 @@ class HttpClientTest extends TestCase
 
     public function testExecute_defersToSubclassToSerialize()
     {
+        Server::enqueue([
+            new Response(200)
+        ]);
 
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+
+        $client = new FancyRequestSerializingClient($this->environment);
+        $client->execute($req);
+
+        $this->assertContains("mySerializedRequestIsBetterThanYours", Server::received()[0]->getBody()->getContents());
     }
 
     public function testExecute_defersToSubclassToDeserialize()
@@ -245,14 +254,18 @@ class BasicInjector implements BraintreeHttp\Injector
     }
 }
 
+class FancyRequestSerializingClient extends BraintreeHttp\HttpClient
+{
+    public function serializeRequest($request)
+    {
+        return "mySerializedRequestIsBetterThanYours";
+    }
+}
+
 class FancyResponseDeserializingClient extends BraintreeHttp\HttpClient
 {
     public function deserializeResponse($responseBody, $headers)
     {
-        if ($headers["myKey"] == "myValue")
-        {
-            return '{"myJSON": "isBetterThanYourJSON"}';
-        }
-        return parent::deserializeResponse($responseBody, $headers);
+        return '{"myJSON": "isBetterThanYourJSON"}';
     }
 }

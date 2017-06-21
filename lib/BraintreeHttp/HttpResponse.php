@@ -9,7 +9,7 @@ class HttpResponse
     public $statusCode;
 
     /**
-     * @var string
+     * @var object | array | string
      */
     public $body;
 
@@ -21,7 +21,7 @@ class HttpResponse
     /**
      * HttpResponse constructor.
      * @param $statusCode integer
-     * @param $body array
+     * @param $body object | array | string
      * @param $headers array
      */
     public function __construct($statusCode, $body, $headers)

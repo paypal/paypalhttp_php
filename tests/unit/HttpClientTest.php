@@ -63,10 +63,14 @@ class HttpClientTest extends TestCase
 
     public function testExecute_usesInjectorsToModifyRequest()
     {
+        Server::enqueue([
+            new Response(200)
+        ]);
+
         $injector = new BasicInjector();
         $this->client->addInjector($injector);
 
-        $req = new BraintreeHttp\HttpRequest("/some-path", "GET");
+        $req = new BraintreeHttp\HttpRequest("/path", "GET");
 
         $this->client->execute($req);
 
@@ -75,23 +79,29 @@ class HttpClientTest extends TestCase
 
     public function testExecute_setsUserAgentIfNotSet()
     {
-        $req = new BraintreeHttp\HttpRequest("/some-path", "GET");
+        Server::enqueue([
+            new Response(200)
+        ]);
+
+        $req = new BraintreeHttp\HttpRequest("/path", "GET");
 
         $this->client->execute($req);
 
-        $this->assertEquals($this->client->userAgent(), $req->headers["User-Agent"]);
-        $this->fail("Convert to wiremock integration test");
+        $this->assertEquals($this->client->userAgent(), Server::received()[0]->getHeader("User-Agent")[0]);
     }
 
     public function testExecute_doesNotSetUserAgentIfAlreadySet()
     {
-        $req = new BraintreeHttp\HttpRequest("/some-path", "GET");
+        Server::enqueue([
+            new Response(200)
+        ]);
+
+        $req = new BraintreeHttp\HttpRequest("/path", "GET");
         $req->headers["User-Agent"] = "Example user-agent";
 
         $this->client->execute($req);
 
-        $this->assertEquals("Example user-agent", $req->headers["User-Agent"]);
-        $this->fail("Convert to wiremock integration test");
+        $this->assertEquals("Example user-agent", Server::received()[0]->getHeader("User-Agent")[0]);
     }
 
     public function testExecute_usesBodyInRequestIfPresent()
@@ -104,7 +114,6 @@ class HttpClientTest extends TestCase
         $req->body[] = "some data";
 
         $res = $this->client->execute($req);
-        $this->assertEquals(200, $res->statusCode);
 
         $received = Server::received()[0];
 
@@ -192,11 +201,19 @@ class HttpClientTest extends TestCase
 
     public function testExecute_defersToSubclassToSerialize()
     {
+
     }
 
     public function testExecute_defersToSubclassToDeserialize()
     {
+        Server::enqueue([
+            new Response(200, ["myKey" => "myValue"], "some junk data")
+        ]);
 
+        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+
+        $client = new FancyResponseDeserializingClient($this->environment);
+        $client->execute($req);
     }
 }
 
@@ -223,5 +240,17 @@ class BasicInjector implements BraintreeHttp\Injector
     public function inject($httpRequest)
     {
         $httpRequest->path = "/some-other-path";
+    }
+}
+
+class FancyResponseDeserializingClient extends BraintreeHttp\HttpClient
+{
+    public function deserializeResponse($responseBody, $headers)
+    {
+        if ($headers["myKey"] == "myValue")
+        {
+            return '{"myJSON": "isBetterThanYourJSON"}';
+        }
+        return parent::deserializeResponse($responseBody, $headers);
     }
 }

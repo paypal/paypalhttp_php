@@ -3,6 +3,7 @@
 namespace BraintreeHttp;
 
 use BraintreeHttp;
+use function GuzzleHttp\headers_from_lines;
 
 /**
  * Class HttpClient
@@ -69,7 +70,7 @@ class HttpClient
         curl_setopt($curl, CURLOPT_URL, $url);
 
         # Set the body
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $httpRequest->body);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
 
         # Get a response back instead of printing to page
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -84,27 +85,7 @@ class HttpClient
 
         curl_close($curl);
 
-        if ($errorCode > 0)
-        {
-            throw new IOException($error, $errorCode);
-        }
-
-        list($headers, $body) = explode("\r\n\r\n", $response, 2);
-
-        $response = new BraintreeHttp\HttpResponse(
-            $errorCode === 0 ? $statusCode : $errorCode,
-            $body,
-            $this->deserializeHeaders($headers)
-        );
-
-        if ($response->statusCode >= 200 && $response->statusCode < 300)
-        {
-            return $response;
-        }
-        else
-        {
-            throw new HttpException($response);
-        }
+        return $this->parseResponse($response, $statusCode, $errorCode, $error);
     }
 
     /**
@@ -139,13 +120,53 @@ class HttpClient
         return $h;
     }
 
-    public function serializeRequest(/* Request */)
+    /**
+     * @param $response object
+     * @param $statusCode integer
+     * @param $errorCode integer
+     * @param $error string
+     */
+    private function parseResponse($response, $statusCode, $errorCode, $error)
     {
+        if ($errorCode > 0)
+        {
+            throw new IOException($error, $errorCode);
+        }
 
+        list($headers, $body) = explode("\r\n\r\n", $response, 2);
+
+        $response = new BraintreeHttp\HttpResponse(
+            $errorCode === 0 ? $statusCode : $errorCode,
+            $this->deserializeResponse($body, $headers),
+            $this->deserializeHeaders($headers)
+        );
+
+        if ($response->statusCode >= 200 && $response->statusCode < 300)
+        {
+            return $response;
+        }
+        else
+        {
+            throw new HttpException($response);
+        }
     }
 
-    public function deserializeRequest(/* Request */)
+    /**
+     * @param $request HttpRequest
+     * @return string
+     */
+    public function serializeRequest($request)
     {
+        return array_reduce($request->body, function($carry, $item) { return $carry . $item; });
+    }
 
+    /**
+     * @param $responseBody string
+     * @param $headers array
+     * @return object | array | string
+     */
+    public function deserializeResponse($responseBody, $headers)
+    {
+        return $responseBody;
     }
 }

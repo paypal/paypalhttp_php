@@ -34,14 +34,6 @@ class HttpClientTest extends TestCase
         $this->client = new BraintreeHttp\HttpClient($this->environment);
     }
 
-    /**
-     * @after
-     */
-    public function teardown()
-    {
-
-    }
-
     public function testAddInjector_addsInjectorToInjectorList()
     {
         $inj = new BasicInjector();

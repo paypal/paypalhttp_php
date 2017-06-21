@@ -135,10 +135,11 @@ class HttpClient
 
         list($headers, $body) = explode("\r\n\r\n", $response, 2);
 
+        $headers = $this->deserializeHeaders($headers);
         $response = new BraintreeHttp\HttpResponse(
             $errorCode === 0 ? $statusCode : $errorCode,
             $this->deserializeResponse($body, $headers),
-            $this->deserializeHeaders($headers)
+            $headers
         );
 
         if ($response->statusCode >= 200 && $response->statusCode < 300)

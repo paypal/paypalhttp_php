@@ -213,7 +213,9 @@ class HttpClientTest extends TestCase
         $req = new BraintreeHttp\HttpRequest("/path", "POST");
 
         $client = new FancyResponseDeserializingClient($this->environment);
-        $client->execute($req);
+        $res = $client->execute($req);
+
+        $this->assertEquals('{"myJSON": "isBetterThanYourJSON"}', $res->body);
     }
 }
 

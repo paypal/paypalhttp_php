@@ -9,7 +9,7 @@ class HttpResponse
     public $statusCode;
 
     /**
-     * @var object | array | string
+     * @var array | string
      */
     public $result;
 

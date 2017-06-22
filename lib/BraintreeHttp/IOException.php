@@ -1,7 +1,6 @@
 <?php
 namespace BraintreeHttp;
 
-
 use Throwable;
 
 class IOException extends \Exception

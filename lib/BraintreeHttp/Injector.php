@@ -1,7 +1,5 @@
 <?php
-
 namespace BraintreeHttp;
-
 
 interface Injector
 {

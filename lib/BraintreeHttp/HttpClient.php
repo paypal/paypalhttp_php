@@ -6,8 +6,7 @@ use BraintreeHttp;
 use function GuzzleHttp\headers_from_lines;
 
 /**
- * Class HttpClient
- * @package BraintreeHttp
+ * Class HttpClient makes HTTP requests.
  */
 class HttpClient
 {
@@ -56,30 +55,29 @@ class HttpClient
             $httpRequest->headers["User-Agent"] = $this->userAgent();
         }
 
-        # Init curl
         $curl = curl_init();
 
-        # Set the headers
         curl_setopt($curl, CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
-
-        # Set verb
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
-
-        # Set the URL
         $url = $this->environment->baseUrl() . $httpRequest->path;
         curl_setopt($curl, CURLOPT_URL, $url);
-
-        # Set the body
         curl_setopt($curl, CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
-
-        # Get a response back instead of printing to page
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADER, 1);
 
-        # Perform the curl, get a response back
+        if (strpos($this->environment->baseUrl(), "https://"))
+        {
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+        }
+
+        if ($caCertPath = $this->getCACertFilePath())
+        {
+            curl_setopt($curl, CURLOPT_CAINFO, $caCertPath);
+        }
+
         $response = curl_exec($curl);
         $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
         $errorCode = curl_errno($curl);
         $error = curl_error($curl);
 
@@ -111,14 +109,14 @@ class HttpClient
      */
     private function serializeHeaders($headers)
     {
-        $h = [];
+        $headerArray = [];
         if ($headers) {
             foreach ($headers as $key => $val) {
-               $h[] = $key . ": " . $val;
+               $headerArray[] = $key . ": " . $val;
             }
         }
 
-        return $h;
+        return $headerArray;
     }
 
     /**
@@ -154,13 +152,12 @@ class HttpClient
     }
 
     /**
-     * Return the filepath to your custom CA Cert if you intend to perform cert pinning
+     * Return the filepath to your custom CA Cert if needed.
      * @return string
      */
-    protected function caFile()
+    protected function getCACertFilePath()
     {
-        // If this returns non-null, grab a cert from here and tack it onto the curl
-        return "";
+        return null;
     }
 
     /**

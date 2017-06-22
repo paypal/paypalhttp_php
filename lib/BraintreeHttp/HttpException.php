@@ -1,9 +1,6 @@
 <?php
 namespace BraintreeHttp;
 
-
-use Throwable;
-
 class HttpException extends IOException
 {
     /**
@@ -12,7 +9,6 @@ class HttpException extends IOException
     public $response;
 
     /**
-     * HttpException constructor.
      * @param string $response
      */
     public function __construct($response)

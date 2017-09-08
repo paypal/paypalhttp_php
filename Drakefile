@@ -24,15 +24,19 @@ module BraintreeHTTPPHP
       "#{app_image_repo}:#{revision}"
     end
 
+    def app_image(php_version)
+      "#{app_image_repo}_php#{php_version}:#{revision}"
+    end
+
     def current_branch
       @current_branch ||= begin
-                            if ENV["BRANCH"].nil?
-                              puts "BRANCH environment variable is nil. Defaulting to a blank string."
-                              ""
-                            else
-                              ENV["BRANCH"]
-                            end
-                          end
+        if ENV["BRANCH"].nil?
+          puts "BRANCH environment variable is nil. Defaulting to a blank string."
+          ""
+         else
+          ENV["BRANCH"]
+         end
+      end
     end
 
     def configure_service_build(service)
@@ -52,10 +56,12 @@ module BraintreeHTTPPHP
 end
 
 job :build do
-  Drake.shell "docker", "build", "-t", BraintreeHTTPPHP.app_image, "."
+  php_version = ENV["PHP_VERSION"] || "70"
+  Drake.shell "docker", "build", "-f", "tests/Dockerfiles/php#{php_version}/Dockerfile", "-t", BraintreeHTTPPHP.app_image(php_version), "."
 end
 
 job :test do
-  Drake.shell "docker", "run", BraintreeHTTPPHP.app_image, "./vendor/bin/phpunit"
+  php_version = ENV["PHP_VERSION"] || "70"
+  Drake.shell "docker", "run", BraintreeHTTPPHP.app_image(php_version), "./vendor/bin/phpunit"
 end
 

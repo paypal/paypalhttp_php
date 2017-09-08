@@ -20,8 +20,8 @@ listView('BraintreeHTTP PHP') {
     job("braintreehttp-php_${buildBranch}") {
       customWorkspace("workspace/braintreehttp-php")
         steps {
-          shell("drake build")
-          shell("drake test")
+          shell("PHP_VERSION=${phpVersion} drake build")
+          shell("PHP_VERSION=${phpVersion} drake test")
         }
       triggers {
         githubPush()

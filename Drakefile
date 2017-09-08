@@ -1,0 +1,61 @@
+module BraintreeHTTPPHP
+  class << self
+    def revision
+      if ENV["INTEGRATION"] && !Drake.engine.active_application.is_root?
+        if ENV["BRANCH"].nil?
+          puts "BRANCH environment variable is required when INTEGRATION environment variable is specified."
+          exit 1
+        end
+        ENV["BRANCH"]
+      else
+        @revision ||= Drake.shell("git", "rev-parse", "HEAD")
+      end
+    end
+
+    def ghe_ip
+      @ghe_ip ||= Drake.ghe_ip
+    end
+
+    def app_image_repo
+      "dockerhub.braintree.tools/braintree/braintreehttp-php"
+    end
+
+    def app_image
+      "#{app_image_repo}:#{revision}"
+    end
+
+    def current_branch
+      @current_branch ||= begin
+                            if ENV["BRANCH"].nil?
+                              puts "BRANCH environment variable is nil. Defaulting to a blank string."
+                              ""
+                            else
+                              ENV["BRANCH"]
+                            end
+                          end
+    end
+
+    def configure_service_build(service)
+      build_args = {
+        "GHE_IP" => BraintreeHTTPPHP.ghe_ip,
+      }
+      service.build do
+        args build_args
+        context File.dirname(File.expand_path(__FILE__))
+      end
+    end
+
+    def expand_local_path(local_path)
+      File.join(File.dirname(File.expand_path(__FILE__)), local_path)
+    end
+  end
+end
+
+job :build do
+  Drake.shell "docker", "build", "-t", BraintreeHTTPPHP.app_image, "."
+end
+
+job :test do
+  Drake.shell "docker", "run", BraintreeHTTPPHP.app_image, "./vendor/bin/phpunit"
+end
+

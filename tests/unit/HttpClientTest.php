@@ -1,187 +1,194 @@
 <?php
+
 namespace Test\Unit;
 
-use BraintreeHttp;
+use BraintreeHttp\Curl;
+use BraintreeHttp\Environment;
+use BraintreeHttp\HttpClient;
+use BraintreeHttp\HttpException;
+use BraintreeHttp\HttpRequest;
+use BraintreeHttp\Injector;
 use PHPUnit\Framework\TestCase;
-use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Tests\Server;
 
 class HttpClientTest extends TestCase
 {
-    /**
-     * @var BraintreeHttp\HttpClient
-     */
-    private $client;
-
-    /**
-     * @var BraintreeHttp\Environment
-     */
-    private $environment;
-
-    public static function setUpBeforeClass()
-    {
-        Server::start();
-    }
-
-    /**
-     * @before
-     */
-    public function setup()
-    {
-        Server::flush();
-
-        $this->environment = new DevelopmentEnvironment(Server::$url);
-        $this->client = new BraintreeHttp\HttpClient($this->environment);
-    }
 
     public function testAddInjector_addsInjectorToInjectorList()
     {
-        $inj = new BasicInjector();
-        $this->client->addInjector($inj);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $client = new MockHttpClient($environment);
 
-        $this->assertContains($inj, $this->client->injectors);
+        $inj = new BasicInjector();
+        $client->addInjector($inj);
+
+        $this->assertContains($inj, $client->injectors);
     }
 
     public function testAddsMultipleInjectors_addsMultipleInjectorsToInjectorList()
     {
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $client = new MockHttpClient($environment);
+
         $inj1 = new BasicInjector();
-        $this->client->addInjector($inj1);
+        $client->addInjector($inj1);
 
         $inj2 = new BasicInjector();
-        $this->client->addInjector($inj2);
+        $client->addInjector($inj2);
 
-        $this->assertArraySubset([$inj1, $inj2], $this->client->injectors);
+        $this->assertArraySubset([$inj1, $inj2], $client->injectors);
     }
+
 
     public function testExecute_usesInjectorsToModifyRequest()
     {
-        Server::enqueue([
-            new Response(200)
-        ]);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
 
         $injector = new BasicInjector();
-        $this->client->addInjector($injector);
+        $client->addInjector($injector);
 
-        $req = new BraintreeHttp\HttpRequest("/path", "GET");
-
-        $this->client->execute($req);
+        $req = new HttpRequest("/path", "GET");
+        $client->execute($req);
 
         $this->assertEquals("/some-other-path", $req->path);
     }
 
+    public function testExecute_formsRequestProperly()
+    {
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "POST");
+        $req->body[] = "some data";
+        $client->execute($req);
+
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_URL, "http://localhost/path"])->once();
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_CUSTOMREQUEST, "POST"])->once();
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, $this->serializeHeaders($req->headers)])->once();
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_POSTFIELDS, "some data"])->once();
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_RETURNTRANSFER, 1])->once();
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_HEADER, 1])->once();
+        $mock->shouldHaveReceived('close')->once();
+    }
+
+    public function testExecute_setsSSLIfBaseUrlIsHttps()
+    {
+        $environment = new DevelopmentEnvironment("https://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "POST");
+        $req->body[] = "some data";
+        $client->execute($req);
+
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_SSL_VERIFYPEER, true])->once();
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_SSL_VERIFYHOST, 2])->once();
+    }
+
     public function testExecute_setsUserAgentIfNotSet()
     {
-        Server::enqueue([
-            new Response(200)
-        ]);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
 
-        $req = new BraintreeHttp\HttpRequest("/path", "GET");
+        $req = new HttpRequest("/path", "POST");
+        $client->execute($req);
 
-        $this->client->execute($req);
-
-        $this->assertEquals($this->client->userAgent(), Server::received()[0]->getHeader("User-Agent")[0]);
+        $mock
+            ->shouldHaveReceived('setOpt')
+            ->with(CURLOPT_HTTPHEADER, \Mockery::on(function ($argument) use ($client) {
+                return $client->userAgent() === $this->deserializeHeaders($argument)['User-Agent'];
+            }));
     }
 
     public function testExecute_doesNotSetUserAgentIfAlreadySet()
     {
-        Server::enqueue([
-            new Response(200)
-        ]);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
 
-        $req = new BraintreeHttp\HttpRequest("/path", "GET");
+        $req = new HttpRequest("/path", "POST");
         $req->headers["User-Agent"] = "Example user-agent";
+        $client->execute($req);
 
-        $this->client->execute($req);
-
-        $this->assertEquals("Example user-agent", Server::received()[0]->getHeader("User-Agent")[0]);
-    }
-
-    public function testExecute_usesBodyInRequestIfPresent()
-    {
-        Server::enqueue([
-            new Response(200)
-        ]);
-
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
-        $req->body[] = "some data";
-
-        $res = $this->client->execute($req);
-
-        $received = Server::received()[0];
-
-        $this->assertContains("some data", $received->getBody()->getContents());
-    }
-
-    public function testExecute_doesNotUseBodyIfNotPresent()
-    {
-        Server::enqueue([
-            new Response(200)
-        ]);
-
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
-
-        $this->client->execute($req);
-
-        $this->assertEquals(0, strlen(Server::received()[0]->getBody()->getContents()));
+        $mock
+            ->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, \Mockery::on(function ($argument) {
+                return "Example user-agent" === $this->deserializeHeaders($argument)['User-Agent'];
+            })]);
     }
 
     public function testExecute_setsHeadersInRequest()
     {
-        Server::enqueue([
-            new Response(200)
-        ]);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
 
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+        $req = new HttpRequest("/path", "POST");
         $req->headers["Custom-Header"] = "Custom value";
+        $client->execute($req);
 
-        $this->client->execute($req);
-
-        $this->assertEquals("Custom value", Server::received()[0]->getHeader("Custom-Header")[0]);
+        $mock
+            ->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, \Mockery::on(function ($argument) {
+                return "Custom value" === $this->deserializeHeaders($argument)['Custom-Header'];
+            })]);
     }
 
     public function testExecute_setsHeadersFromResponse()
     {
-        Server::enqueue([
-            new Response(200, ["Some-key" => "Some value"])
-        ]);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200, "Response body", ["Some-key" => "Some value"]))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
 
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
-
-        $res = $this->client->execute($req);
+        $req = new HttpRequest("/path", "POST");
+        $res = $client->execute($req);
 
         $this->assertEquals("Some value", $res->headers["Some-key"]);
     }
 
-    public function testExecute_parses200LevelResponse()
+    public function testExecute_defersToSubclassToSerialize()
     {
-        Server::enqueue([
-            new Response(200, [],'')
-        ]);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new WhiteSpaceRemovingSerializingClient($environment, $mock);
 
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
 
-        $res = $this->client->execute($req);
+        $req = new HttpRequest("/path", "POST");
+        $req->body[] = "some data here";
+        $client->execute($req);
 
-        $this->assertEquals(200, $res->statusCode);
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_POSTFIELDS, "somedatahere"])->once();
     }
 
-    public function testExecute_throwsforNon200LevelResponse()
+    public function testExecute_defersToSubclassToDeserialize()
     {
-        Server::enqueue([
-            new Response(400, ["Response-Header" => "Debug Value"],"Response body")
-        ]);
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200, "some junk data", ["myKey" => "myValue"]))->makePartial();
+        $client = new FancyResponseDeserializingClient($environment, $mock);
 
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
+        $req = new HttpRequest("/path", "POST");
+        $res = $client->execute($req);
 
+        $this->assertEquals('{"myJSON": "isBetterThanYourJSON"}', $res->result);
+    }
+
+    public function testExecute_throwsForNon200LevelResponse()
+    {
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(400, "Response body", ["Debug-Id" => "Debug-Data"]))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "POST");
         try
         {
-            $res = $this->client->execute($req);
+            $client->execute($req);
             $this->fail("expected execute to throw");
         }
-        catch (BraintreeHttp\HttpException $e)
+        catch (HttpException $e)
         {
             $this->assertEquals(400, $e->response->statusCode);
-            $this->assertArraySubset(["Response-Header" => "Debug Value"], $e->response->headers);
+            $this->assertArraySubset(["Debug-Id" => "Debug-Data"], $e->response->headers);
             $this->assertEquals("Response body", $e->response->result);
         }
         catch (\Exception $e)
@@ -191,36 +198,70 @@ class HttpClientTest extends TestCase
         }
     }
 
-    public function testExecute_defersToSubclassToSerialize()
+    private function serializeHeaders($headers)
     {
-        Server::enqueue([
-            new Response(200)
-        ]);
-
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
-
-        $client = new FancyRequestSerializingClient($this->environment);
-        $client->execute($req);
-
-        $this->assertContains("mySerializedRequestIsBetterThanYours", Server::received()[0]->getBody()->getContents());
+        $headerArray = [];
+        if ($headers) {
+            foreach ($headers as $key => $val) {
+                $headerArray[] = $key . ": " . $val;
+            }
+        }
+        return $headerArray;
     }
 
-    public function testExecute_defersToSubclassToDeserialize()
+    private function deserializeHeaders($headers)
     {
-        Server::enqueue([
-            new Response(200, ["myKey" => "myValue"], "some junk data")
-        ]);
-
-        $req = new BraintreeHttp\HttpRequest("/path", "POST");
-
-        $client = new FancyResponseDeserializingClient($this->environment);
-        $res = $client->execute($req);
-
-        $this->assertEquals('{"myJSON": "isBetterThanYourJSON"}', $res->result);
+        $separatedHeaders = [];
+        foreach ($headers as $header) {
+            if (!empty($header)) {
+                list($key, $val) = explode(":", $header);
+                $separatedHeaders[$key] = trim($val);
+            }
+        }
+        return $separatedHeaders;
     }
 }
 
-class DevelopmentEnvironment implements BraintreeHttp\Environment
+class MockHttpClient extends HttpClient
+{
+    public function __construct(Environment $environment, Curl $curl = null)
+    {
+        parent::__construct($environment);
+        if ($curl) {
+            $this->setCurl($curl);
+        }
+    }
+}
+
+class BasicInjector implements Injector
+{
+    public function inject($httpRequest)
+    {
+        $httpRequest->path = "/some-other-path";
+    }
+}
+
+class WhiteSpaceRemovingSerializingClient extends MockHttpClient
+{
+    public function serializeRequest($request)
+    {
+        $str = "";
+        foreach ($request->body as $body) {
+            $str .= str_replace(' ', '', $body);
+        }
+        return $str;
+    }
+}
+
+class FancyResponseDeserializingClient extends MockHttpClient
+{
+    public function deserializeResponse($responseBody, $headers)
+    {
+        return '{"myJSON": "isBetterThanYourJSON"}';
+    }
+}
+
+class DevelopmentEnvironment implements Environment
 {
     /**
      * @var string
@@ -238,26 +279,68 @@ class DevelopmentEnvironment implements BraintreeHttp\Environment
     }
 }
 
-class BasicInjector implements BraintreeHttp\Injector
+class MockCurl extends Curl
 {
-    public function inject($httpRequest)
-    {
-        $httpRequest->path = "/some-other-path";
-    }
-}
+    private $statusCode;
+    private $data;
+    private $headers;
+    private $errorCode;
+    private $error;
+    private $reqHeaders;
 
-class FancyRequestSerializingClient extends BraintreeHttp\HttpClient
-{
-    public function serializeRequest($request)
+    public function setOpt($option, $value)
     {
-        return "mySerializedRequestIsBetterThanYours";
+        switch ($option) {
+            case CURLOPT_HTTPHEADER:
+                $this->reqHeaders = $value;
+        }
+        return $this;
     }
-}
 
-class FancyResponseDeserializingClient extends BraintreeHttp\HttpClient
-{
-    public function deserializeResponse($responseBody, $headers)
+    public function __construct($statusCode, $data = "", $headers = [], $errorCode = 0, $error = null)
     {
-        return '{"myJSON": "isBetterThanYourJSON"}';
+        $this->statusCode = $statusCode;
+        $this->data = $data;
+        $this->headers = $headers;
+        $this->errorCode = $errorCode;
+        $this->error = $error;
+    }
+
+    public function init()
+    {
+        return $this;
+    }
+
+    public function close()
+    {
+        // do nothing
+    }
+
+    public function getInfo($option = null)
+    {
+        if ($option != null) {
+            return $this->statusCode;
+        }
+        return curl_getinfo($this->curl);
+    }
+
+    public function exec()
+    {
+        $response = "\n";
+        foreach ($this->headers as $key => $value) {
+            $response .= $key . ":" . $value;
+        }
+        $response .= "\r\n\r\n";
+        $response .= $this->data;
+        return $response;
+    }
+
+    public function errNo()
+    {
+        return $this->errorCode;
+    }
+
+    public function error() {
+        return $this->error;
     }
 }

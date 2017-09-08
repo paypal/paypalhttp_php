@@ -13,12 +13,11 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^5.7",
-        "guzzlehttp/guzzle": "^6.2"
+        "mockery/mockery": "^0.9.9"
     },
     "autoload": {
         "psr-4": {
-            "BraintreeHttp\\": "lib/BraintreeHttp",
-            "GuzzleHttp\\Tests\\": "vendor/guzzlehttp/guzzle/tests"
+            "BraintreeHttp\\": "lib/BraintreeHttp"
         }
     }
 }

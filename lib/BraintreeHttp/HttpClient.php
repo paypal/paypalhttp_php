@@ -3,7 +3,6 @@
 namespace BraintreeHttp;
 
 use BraintreeHttp;
-use function GuzzleHttp\headers_from_lines;
 
 /**
  * Class HttpClient makes HTTP requests.
@@ -20,6 +19,8 @@ class HttpClient
      */
     public $injectors = [];
 
+    private $curl;
+
     /**
      * HttpClient constructor.
      * @param $environment Environment
@@ -34,6 +35,10 @@ class HttpClient
         return "BraintreeHttp-PHP HTTP/1.1";
     }
 
+    protected function setCurl(Curl $curl) {
+        $this->curl = $curl;
+    }
+
     public function addInjector(Injector $inj)
     {
         $this->injectors[] = $inj;
@@ -45,6 +50,10 @@ class HttpClient
      */
     public function execute($httpRequest)
     {
+        if ($this->curl === null) {
+            $this->curl = new Curl();
+        }
+
         foreach ($this->injectors as $inj)
         {
             $inj->inject($httpRequest);
@@ -55,33 +64,33 @@ class HttpClient
             $httpRequest->headers["User-Agent"] = $this->userAgent();
         }
 
-        $curl = curl_init();
-
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
         $url = $this->environment->baseUrl() . $httpRequest->path;
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HEADER, 1);
 
-        if (strpos($this->environment->baseUrl(), "https://"))
+        $this->curl->init();
+        $this->curl->setOpt(CURLOPT_URL, $url);
+        $this->curl->setOpt(CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
+        $this->curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
+        $this->curl->setOpt(CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
+        $this->curl->setOpt(CURLOPT_RETURNTRANSFER, true);
+        $this->curl->setOpt(CURLOPT_HEADER, 1);
+
+        if (strpos($this->environment->baseUrl(), "https://") === 0)
         {
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+            $this->curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
+            $this->curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
         }
 
         if ($caCertPath = $this->getCACertFilePath())
         {
-            curl_setopt($curl, CURLOPT_CAINFO, $caCertPath);
+            $this->curl->setOpt(CURLOPT_CAINFO, $caCertPath);
         }
 
-        $response = curl_exec($curl);
-        $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $errorCode = curl_errno($curl);
-        $error = curl_error($curl);
+        $response = $this->curl->exec();
+        $statusCode = $this->curl->getInfo(CURLINFO_HTTP_CODE);
+        $errorCode = $this->curl->errNo();
+        $error = $this->curl->error();
 
-        curl_close($curl);
+        $this->curl->close();
 
         return $this->parseResponse($response, $statusCode, $errorCode, $error);
     }
@@ -96,8 +105,10 @@ class HttpClient
         array_shift($split);
         $separatedHeaders = [];
         foreach ($split as $header) {
-            list($key, $val) = explode(":", $header);
-            $separatedHeaders[$key] = trim($val);
+            if (!empty($header)) {
+                list($key, $val) = explode(":", $header);
+                $separatedHeaders[$key] = trim($val);
+            }
         }
 
         return $separatedHeaders;

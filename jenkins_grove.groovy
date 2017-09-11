@@ -17,7 +17,7 @@ listView('BraintreeHTTP PHP') {
 
 ["master"].each { buildBranch ->
   ["56", "70", "71"].each { phpVersion ->
-    job("braintreehttp-php_${buildBranch}") {
+    job("braintreehttp-php_${phpVersion}_${buildBranch}") {
       customWorkspace("workspace/braintreehttp-php")
         steps {
           shell("PHP_VERSION=${phpVersion} drake build")

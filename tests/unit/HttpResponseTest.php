@@ -1,4 +1,5 @@
 <?php
+
 namespace Test\Unit;
 
 use BraintreeHttp\HttpResponse;

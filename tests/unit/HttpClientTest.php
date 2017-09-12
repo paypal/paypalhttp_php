@@ -188,19 +188,14 @@ class HttpClientTest extends TestCase
         $client = new MockHttpClient($environment, $mock);
 
         $req = new HttpRequest("/path", "POST");
-        try
-        {
+        try {
             $client->execute($req);
             $this->fail("expected execute to throw");
-        }
-        catch (HttpException $e)
-        {
+        } catch (HttpException $e) {
             $this->assertEquals(400, $e->response->statusCode);
             $this->assertArraySubset(["Debug-Id" => "Debug Data"], $e->response->headers);
             $this->assertEquals("Response body", $e->response->result);
-        }
-        catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             echo($e);
             $this->fail("execute threw non-HttpException");
         }
@@ -296,15 +291,6 @@ class MockCurl extends Curl
     private $error;
     private $reqHeaders;
 
-    public function setOpt($option, $value)
-    {
-        switch ($option) {
-            case CURLOPT_HTTPHEADER:
-                $this->reqHeaders = $value;
-        }
-        return $this;
-    }
-
     public function __construct($statusCode, $data = null, $headers = [], $errorCode = 0, $error = null)
     {
         $this->statusCode = $statusCode;
@@ -312,6 +298,15 @@ class MockCurl extends Curl
         $this->headers = $headers;
         $this->errorCode = $errorCode;
         $this->error = $error;
+    }
+
+    public function setOpt($option, $value)
+    {
+        switch ($option) {
+            case CURLOPT_HTTPHEADER:
+                $this->reqHeaders = $value;
+        }
+        return $this;
     }
 
     public function init()
@@ -353,7 +348,8 @@ class MockCurl extends Curl
         return $this->errorCode;
     }
 
-    public function error() {
+    public function error()
+    {
         return $this->error;
     }
 }

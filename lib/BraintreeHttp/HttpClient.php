@@ -100,6 +100,44 @@ class HttpClient
     }
 
     /**
+     * @param $request HttpRequest
+     * @return string
+     */
+    public function serializeRequest($request)
+    {
+        return $this->encoder->encode($request);
+    }
+
+    /**
+     * @param $responseBody string
+     * @param $headers array
+     * @return array | string
+     */
+    public function deserializeResponse($responseBody, $headers)
+    {
+        return $this->encoder->decode($responseBody, $headers);
+    }
+
+    /**
+     * Return the filepath to your custom CA Cert if needed.
+     * @return string
+     */
+    protected function getCACertFilePath()
+    {
+        return null;
+    }
+
+    protected function setCurl(Curl $curl)
+    {
+        $this->curl = $curl;
+    }
+
+    protected function setEncoder(Encoder $encoder)
+    {
+        $this->encoder = $encoder;
+    }
+
+    /**
      * @param $headers array[]
      * @return array
      */
@@ -113,24 +151,6 @@ class HttpClient
         }
 
         return $headerArray;
-    }
-
-    /**
-     * @param $request HttpRequest
-     * @return string
-     */
-    public function serializeRequest($request)
-    {
-        return $this->encoder->encode($request);
-    }
-
-    /**
-     * Return the filepath to your custom CA Cert if needed.
-     * @return string
-     */
-    protected function getCACertFilePath()
-    {
-        return null;
     }
 
     /**
@@ -188,25 +208,5 @@ class HttpClient
         } else {
             return [];
         }
-    }
-
-    /**
-     * @param $responseBody string
-     * @param $headers array
-     * @return array | string
-     */
-    public function deserializeResponse($responseBody, $headers)
-    {
-        return $this->encoder->decode($responseBody, $headers);
-    }
-
-    protected function setCurl(Curl $curl)
-    {
-        $this->curl = $curl;
-    }
-
-    protected function setEncoder(Encoder $encoder)
-    {
-        $this->encoder = $encoder;
     }
 }

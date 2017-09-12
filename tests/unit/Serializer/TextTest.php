@@ -43,9 +43,9 @@ class TextTest extends TestCase
     {
         $httpRequest = new HttpRequest("/path", "post");
         $httpRequest->body['key'] = [
-                'another_key' => 'another value',
-                'something' => 'else'
-            ];
+            'another_key' => 'another value',
+            'something' => 'else'
+        ];
 
         $textSerializer = new Text();
         $result = $textSerializer->serialize($httpRequest);

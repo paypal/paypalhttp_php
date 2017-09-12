@@ -37,6 +37,22 @@ class Encoder
         throw new \Exception(sprintf("Body must be either string or array"));
     }
 
+    public function decode($responseBody, $headers)
+    {
+        if (!array_key_exists('Content-Type', $headers)) {
+            throw new \Exception("HTTP response does not have Content-Type header set");
+        }
+
+        $contentType = $headers['Content-Type'];
+        /** @var Serializer $serializer */
+        $serializer = $this->serializer($contentType);
+        if (is_null($serializer)) {
+            throw new \Exception(sprintf("Unable to deserialize response with Content-Type: %s. Supported encodings are: %s", $contentType, $this->supportedEncodings()));
+        }
+
+        return $serializer->deserialize($responseBody);
+    }
+
     private function serializer($contentType)
     {
         /** @var Serializer $serializer */
@@ -61,21 +77,5 @@ class Encoder
             $values[] = $serializer->contentType();
         }
         return $values;
-    }
-
-    public function decode($responseBody, $headers)
-    {
-        if (!array_key_exists('Content-Type', $headers)) {
-            throw new \Exception("HTTP response does not have Content-Type header set");
-        }
-
-        $contentType = $headers['Content-Type'];
-        /** @var Serializer $serializer */
-        $serializer = $this->serializer($contentType);
-        if (is_null($serializer)) {
-            throw new \Exception(sprintf("Unable to deserialize response with Content-Type: %s. Supported encodings are: %s", $contentType, $this->supportedEncodings()));
-        }
-
-        return $serializer->deserialize($responseBody);
     }
 }

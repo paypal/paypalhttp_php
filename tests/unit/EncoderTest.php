@@ -93,7 +93,7 @@ class EncoderTest extends TestCase
      * @expectedException \Exception
      * @expectedExceptionMessage Unable to deserialize response with Content-Type: application/unstructured. Supported encodings are:
      */
-    public function testDecode_throwsWhenNoSerializerAvailableForContentType() 
+    public function testDecode_throwsWhenNoSerializerAvailableForContentType()
     {
         $encoder = new Encoder();
         $headers = [

@@ -1,4 +1,5 @@
 <?php
+
 namespace BraintreeHttp;
 
 class HttpRequest
@@ -23,11 +24,16 @@ class HttpRequest
      */
     public $headers;
 
+    /**
+     * @var string
+     */
+    public $responseClazz;
+
     function __construct($path, $verb)
     {
         $this->path = $path;
         $this->verb = $verb;
-        $this->body = [];
+        $this->body = NULL;
         $this->headers = [];
     }
 }

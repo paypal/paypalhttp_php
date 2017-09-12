@@ -1,4 +1,5 @@
 <?php
+
 namespace BraintreeHttp;
 
 interface Environment

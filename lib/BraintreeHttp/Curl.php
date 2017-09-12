@@ -2,16 +2,19 @@
 
 namespace BraintreeHttp;
 
-class Curl {
+class Curl
+{
 
     protected $curl;
 
-    public function init() {
+    public function init()
+    {
         $this->curl = curl_init();
         return $this;
     }
 
-    public function setOpt($option, $value) {
+    public function setOpt($option, $value)
+    {
         curl_setopt($this->curl, $option, $value);
         return $this;
     }
@@ -22,7 +25,8 @@ class Curl {
         return $this;
     }
 
-    public function exec() {
+    public function exec()
+    {
         return curl_exec($this->curl);
     }
 

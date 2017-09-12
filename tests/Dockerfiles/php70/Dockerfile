@@ -11,7 +11,9 @@ RUN curl -o /tmp/composer-setup.php https://getcomposer.org/installer \
 RUN composer --version
 
 WORKDIR /bt/braintreehttp-php
-COPY . .
+COPY ./composer.json .
 
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer update
+
+COPY . . 

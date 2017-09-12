@@ -1,4 +1,5 @@
 <?php
+
 namespace BraintreeHttp;
 
 class HttpException extends IOException

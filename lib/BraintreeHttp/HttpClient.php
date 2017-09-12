@@ -19,7 +19,15 @@ class HttpClient
      */
     public $injectors = [];
 
+    /**
+     * @var Curl
+     */
     private $curl;
+
+    /**
+     * @var Encoder
+     */
+    private $encoder;
 
     /**
      * HttpClient constructor.
@@ -28,15 +36,7 @@ class HttpClient
     function __construct(Environment $environment)
     {
         $this->environment = $environment;
-    }
-
-    public function userAgent()
-    {
-        return "BraintreeHttp-PHP HTTP/1.1";
-    }
-
-    protected function setCurl(Curl $curl) {
-        $this->curl = $curl;
+        $this->encoder = new Encoder();
     }
 
     public function addInjector(Injector $inj)
@@ -54,13 +54,11 @@ class HttpClient
             $this->curl = new Curl();
         }
 
-        foreach ($this->injectors as $inj)
-        {
+        foreach ($this->injectors as $inj) {
             $inj->inject($httpRequest);
         }
 
-        if (!array_key_exists("User-Agent", $httpRequest->headers))
-        {
+        if (!array_key_exists("User-Agent", $httpRequest->headers)) {
             $httpRequest->headers["User-Agent"] = $this->userAgent();
         }
 
@@ -70,18 +68,19 @@ class HttpClient
         $this->curl->setOpt(CURLOPT_URL, $url);
         $this->curl->setOpt(CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
         $this->curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
-        $this->curl->setOpt(CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
         $this->curl->setOpt(CURLOPT_RETURNTRANSFER, true);
         $this->curl->setOpt(CURLOPT_HEADER, 1);
 
-        if (strpos($this->environment->baseUrl(), "https://") === 0)
-        {
+        if (!is_null($httpRequest->body)) {
+            $this->curl->setOpt(CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
+        }
+
+        if (strpos($this->environment->baseUrl(), "https://") === 0) {
             $this->curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
             $this->curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
         }
 
-        if ($caCertPath = $this->getCACertFilePath())
-        {
+        if ($caCertPath = $this->getCACertFilePath()) {
             $this->curl->setOpt(CURLOPT_CAINFO, $caCertPath);
         }
 
@@ -95,23 +94,9 @@ class HttpClient
         return $this->parseResponse($response, $statusCode, $errorCode, $error);
     }
 
-    /**
-     * @param $headers string
-     * @return array
-     */
-    private function deserializeHeaders($headers)
+    public function userAgent()
     {
-        $split = explode("\n", $headers);
-        array_shift($split);
-        $separatedHeaders = [];
-        foreach ($split as $header) {
-            if (!empty($header)) {
-                list($key, $val) = explode(":", $header);
-                $separatedHeaders[$key] = trim($val);
-            }
-        }
-
-        return $separatedHeaders;
+        return "BraintreeHttp-PHP HTTP/1.1";
     }
 
     /**
@@ -123,7 +108,7 @@ class HttpClient
         $headerArray = [];
         if ($headers) {
             foreach ($headers as $key => $val) {
-               $headerArray[] = $key . ": " . $val;
+                $headerArray[] = $key . ": " . $val;
             }
         }
 
@@ -131,35 +116,12 @@ class HttpClient
     }
 
     /**
-     * @param $response object
-     * @param $statusCode integer
-     * @param $errorCode integer
-     * @param $error string
+     * @param $request HttpRequest
+     * @return string
      */
-    private function parseResponse($response, $statusCode, $errorCode, $error)
+    public function serializeRequest($request)
     {
-        if ($errorCode > 0)
-        {
-            throw new IOException($error, $errorCode);
-        }
-
-        list($headers, $body) = explode("\r\n\r\n", $response, 2);
-
-        $headers = $this->deserializeHeaders($headers);
-        $response = new BraintreeHttp\HttpResponse(
-            $errorCode === 0 ? $statusCode : $errorCode,
-            $this->deserializeResponse($body, $headers),
-            $headers
-        );
-
-        if ($response->statusCode >= 200 && $response->statusCode < 300)
-        {
-            return $response;
-        }
-        else
-        {
-            throw new HttpException($response);
-        }
+        return $this->encoder->encode($request);
     }
 
     /**
@@ -172,12 +134,60 @@ class HttpClient
     }
 
     /**
-     * @param $request HttpRequest
-     * @return string
+     * @param $response object
+     * @param $statusCode integer
+     * @param $errorCode integer
+     * @param $error string
+     * @return mixed response received from server
      */
-    public function serializeRequest($request)
+    private function parseResponse($response, $statusCode, $errorCode, $error)
     {
-        return array_reduce($request->body, function($carry, $item) { return $carry . $item; });
+        if ($errorCode > 0) {
+            throw new IOException($error, $errorCode);
+        }
+
+        list($headers, $body) = explode("\r\n\r\n", $response, 2);
+
+        $headers = $this->deserializeHeaders($headers);
+        $responseBody = NULL;
+        if (!ctype_space($body)) {
+            $responseBody = $this->deserializeResponse($body, $headers);
+        }
+
+        $response = new BraintreeHttp\HttpResponse(
+            $errorCode === 0 ? $statusCode : $errorCode,
+            $responseBody,
+            $headers
+        );
+
+        if ($response->statusCode >= 200 && $response->statusCode < 300) {
+            return $response;
+        } else {
+            throw new HttpException($response);
+        }
+    }
+
+    /**
+     * @param $headers string
+     * @return array
+     */
+    private function deserializeHeaders($headers)
+    {
+        if (strlen($headers) > 0) {
+            $split = explode("\r\n", $headers);
+            array_shift($split);
+            $separatedHeaders = [];
+            foreach ($split as $header) {
+                if (!empty($header)) {
+                    list($key, $val) = explode(":", $header);
+                    $separatedHeaders[$key] = trim($val);
+                }
+            }
+
+            return $separatedHeaders;
+        } else {
+            return [];
+        }
     }
 
     /**
@@ -187,6 +197,16 @@ class HttpClient
      */
     public function deserializeResponse($responseBody, $headers)
     {
-        return $responseBody;
+        return $this->encoder->decode($responseBody, $headers);
+    }
+
+    protected function setCurl(Curl $curl)
+    {
+        $this->curl = $curl;
+    }
+
+    protected function setEncoder(Encoder $encoder)
+    {
+        $this->encoder = $encoder;
     }
 }

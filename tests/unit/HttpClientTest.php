@@ -38,7 +38,6 @@ class HttpClientTest extends TestCase
         $this->assertArraySubset([$inj1, $inj2], $client->injectors);
     }
 
-
     public function testExecute_usesInjectorsToModifyRequest()
     {
         $environment = new DevelopmentEnvironment("http://localhost");
@@ -61,7 +60,8 @@ class HttpClientTest extends TestCase
         $client = new MockHttpClient($environment, $mock);
 
         $req = new HttpRequest("/path", "POST");
-        $req->body[] = "some data";
+        $req->headers["Content-Type"] = "application/json";
+        $req->body = "some data";
         $client->execute($req);
 
         $mock->shouldHaveReceived('setOpt', [CURLOPT_URL, "http://localhost/path"])->once();
@@ -81,6 +81,7 @@ class HttpClientTest extends TestCase
 
         $req = new HttpRequest("/path", "POST");
         $req->body[] = "some data";
+        $req->headers["Content-Type"] = "text/plain";
         $client->execute($req);
 
         $mock->shouldHaveReceived('setOpt', [CURLOPT_SSL_VERIFYPEER, true])->once();
@@ -138,7 +139,11 @@ class HttpClientTest extends TestCase
     public function testExecute_setsHeadersFromResponse()
     {
         $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200, "Response body", ["Some-key" => "Some value"]))->makePartial();
+        $responseHeaders = [
+            "Some-key" => "Some value",
+            "Content-Type" => "text/plain"
+        ];
+        $mock = \Mockery::mock(new MockCurl(200, "Response body", $responseHeaders))->makePartial();
         $client = new MockHttpClient($environment, $mock);
 
         $req = new HttpRequest("/path", "POST");
@@ -152,7 +157,6 @@ class HttpClientTest extends TestCase
         $environment = new DevelopmentEnvironment("http://localhost");
         $mock = \Mockery::mock(new MockCurl(200))->makePartial();
         $client = new WhiteSpaceRemovingSerializingClient($environment, $mock);
-
 
         $req = new HttpRequest("/path", "POST");
         $req->body[] = "some data here";
@@ -176,7 +180,11 @@ class HttpClientTest extends TestCase
     public function testExecute_throwsForNon200LevelResponse()
     {
         $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(400, "Response body", ["Debug-Id" => "Debug-Data"]))->makePartial();
+        $responseHeaders = [
+            "Debug-Id" => "Debug Data",
+            "Content-Type" => "text/plain"
+        ];
+        $mock = \Mockery::mock(new MockCurl(400, "Response body", $responseHeaders))->makePartial();
         $client = new MockHttpClient($environment, $mock);
 
         $req = new HttpRequest("/path", "POST");
@@ -188,7 +196,7 @@ class HttpClientTest extends TestCase
         catch (HttpException $e)
         {
             $this->assertEquals(400, $e->response->statusCode);
-            $this->assertArraySubset(["Debug-Id" => "Debug-Data"], $e->response->headers);
+            $this->assertArraySubset(["Debug-Id" => "Debug Data"], $e->response->headers);
             $this->assertEquals("Response body", $e->response->result);
         }
         catch (\Exception $e)
@@ -297,7 +305,7 @@ class MockCurl extends Curl
         return $this;
     }
 
-    public function __construct($statusCode, $data = "", $headers = [], $errorCode = 0, $error = null)
+    public function __construct($statusCode, $data = null, $headers = [], $errorCode = 0, $error = null)
     {
         $this->statusCode = $statusCode;
         $this->data = $data;
@@ -326,12 +334,17 @@ class MockCurl extends Curl
 
     public function exec()
     {
-        $response = "\n";
+        $response = "HTTP/1.1 " . $this->statusCode . " Status Message\r\n";
+        $serializedHeaders = [];
         foreach ($this->headers as $key => $value) {
-            $response .= $key . ":" . $value;
+            $serializedHeaders[] = $key . ":" . $value;
         }
+        $response .= implode("\r\n", $serializedHeaders);
         $response .= "\r\n\r\n";
-        $response .= $this->data;
+        if (!is_null($this->data)) {
+            $response .= $this->data;
+        }
+
         return $response;
     }
 

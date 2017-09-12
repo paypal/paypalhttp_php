@@ -5,6 +5,12 @@ namespace BraintreeHttp\Serializer;
 use BraintreeHttp\HttpRequest;
 use BraintreeHttp\Serializer;
 
+/**
+ * Class Text
+ * @package BraintreeHttp\Serializer
+ *
+ * Serializer for Text content types.
+ */
 class Text implements Serializer
 {
 

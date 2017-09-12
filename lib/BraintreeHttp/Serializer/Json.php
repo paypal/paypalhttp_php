@@ -2,11 +2,15 @@
 
 namespace BraintreeHttp\Serializer;
 
-use BraintreeHttp\Deserializable;
 use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializable;
 use BraintreeHttp\Serializer;
 
+/**
+ * Class Json
+ * @package BraintreeHttp\Serializer
+ *
+ * Serializer for JSON content types.
+ */
 class Json implements Serializer
 {
 
@@ -23,11 +27,6 @@ class Json implements Serializer
         }
         if (is_array($body)) {
             return json_encode($body);
-        }
-        if ($body instanceof Serializable) {
-            $map = [];
-            $body->serialize($map);
-            return json_encode($map);
         }
         throw new \Exception("Cannot serialize data. Unknown type");
     }

@@ -2,10 +2,11 @@
 
 namespace BraintreeHttp;
 
-use BraintreeHttp;
-
 /**
- * Class HttpClient makes HTTP requests.
+ * Class HttpClient
+ * @package BraintreeHttp
+ *
+ * Client used to make HTTP requests.
  */
 class HttpClient
 {
@@ -30,8 +31,10 @@ class HttpClient
     private $encoder;
 
     /**
-     * HttpClient constructor.
+     * HttpClient constructor. Pass the environment you wish to make calls to.
+     *
      * @param $environment Environment
+     * @see Environment
      */
     function __construct(Environment $environment)
     {
@@ -48,7 +51,7 @@ class HttpClient
      * @param $httpRequest HttpRequest
      * @return HttpResponse
      */
-    public function execute($httpRequest)
+    public function execute(HttpRequest $httpRequest)
     {
         if ($this->curl === null) {
             $this->curl = new Curl();
@@ -103,7 +106,7 @@ class HttpClient
      * @param $request HttpRequest
      * @return string
      */
-    public function serializeRequest($request)
+    public function serializeRequest(HttpRequest $request)
     {
         return $this->encoder->encode($request);
     }
@@ -174,7 +177,7 @@ class HttpClient
             $responseBody = $this->deserializeResponse($body, $headers);
         }
 
-        $response = new BraintreeHttp\HttpResponse(
+        $response = new HttpResponse(
             $errorCode === 0 ? $statusCode : $errorCode,
             $responseBody,
             $headers

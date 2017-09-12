@@ -2,6 +2,13 @@
 
 namespace BraintreeHttp;
 
+/**
+ * Class Curl
+ * @package BraintreeHttp
+ *
+ * Curl wrapper used by HttpClient to make curl requests.
+ * @see HttpClient
+ */
 class Curl
 {
 

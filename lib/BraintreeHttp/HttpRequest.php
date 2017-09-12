@@ -2,6 +2,14 @@
 
 namespace BraintreeHttp;
 
+/**
+ * Class HttpRequest
+ * @package BraintreeHttp
+ *
+ * Request object that holds all the necessary information required by HTTPClient
+ *
+ * @see HttpClient
+ */
 class HttpRequest
 {
     /**

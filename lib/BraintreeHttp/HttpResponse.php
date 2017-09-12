@@ -2,6 +2,12 @@
 
 namespace BraintreeHttp;
 
+/**
+ * Class HttpResponse
+ * @package BraintreeHttp
+ *
+ * Object that holds your response details
+ */
 class HttpResponse
 {
     /**

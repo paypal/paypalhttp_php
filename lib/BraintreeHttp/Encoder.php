@@ -5,6 +5,12 @@ namespace BraintreeHttp;
 use BraintreeHttp\Serializer\Json;
 use BraintreeHttp\Serializer\Text;
 
+/**
+ * Class Encoder
+ * @package BraintreeHttp
+ *
+ * Encoding class for serializing and deserializing request/response.
+ */
 class Encoder
 {
     private $serializers = [];

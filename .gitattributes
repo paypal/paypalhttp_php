@@ -1,9 +1,10 @@
 tests/ export-ignore
 .idea/ export-ignore
+.github/ export-ignore
 .releasinator.rb export-ignore
 Drakefile export-ignore
 Gemfile export-ignore
 Gemfile.lock export-ignore
 Rakefile export-ignore
-jenkins_groove.groovy export-ignore
+jenkins_grove.groovy export-ignore
 

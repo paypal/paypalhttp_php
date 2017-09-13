@@ -201,6 +201,19 @@ class HttpClientTest extends TestCase
         }
     }
 
+    public function testParseResponse_parsesResponseWith100ContinueCorrectly()
+    {
+        $response = "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 200 OK\r\nDate: Wed, 13 Sep 2017 21:56:31 GMT\r\nServer: Apache/2.4.18 (Ubuntu)\r\nAccess-Control-Allow-Origin: *\r\nVary: Accept-Encoding\r\nContent-Length: 128\r\nContent-Type: text/html; charset=UTF-8\r\n\r\nSuccessfully dumped some data.\nAnother line of data\nLast one.";
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockRawCurl(200, $response))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "POST");
+        $res = $client->execute($req);
+
+        $this->assertEquals("Successfully dumped some data.\nAnother line of data\nLast one.", $res->result);
+    }
+
     private function serializeHeaders($headers)
     {
         $headerArray = [];

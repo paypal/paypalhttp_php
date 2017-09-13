@@ -42,12 +42,20 @@ class HttpClient
         $this->encoder = new Encoder();
     }
 
+    /**
+     * Injectors are blocks that can be used for executing arbitrary pre-flight logic, such as modifying a request or logging data.
+     * Executed in first-in first-out order.
+     *
+     * @param Injector $inj
+     */
     public function addInjector(Injector $inj)
     {
         $this->injectors[] = $inj;
     }
 
     /**
+     * The method that takes an HTTP request, serializes the request, makes a call to given environment, and deserialize response
+     *
      * @param $httpRequest HttpRequest
      * @return HttpResponse
      */
@@ -97,12 +105,19 @@ class HttpClient
         return $this->parseResponse($response, $statusCode, $errorCode, $error);
     }
 
+    /**
+     * Returns default user-agent
+     *
+     * @return string
+     */
     public function userAgent()
     {
         return "BraintreeHttp-PHP HTTP/1.1";
     }
 
     /**
+     * Serialize request to be sent to server
+     *
      * @param $request HttpRequest
      * @return string
      */
@@ -112,9 +127,11 @@ class HttpClient
     }
 
     /**
+     * De-serializes response received from server to expected output.
+     *
      * @param $responseBody string
      * @param $headers array
-     * @return array | string
+     * @return mixed de-serialized response
      */
     public function deserializeResponse($responseBody, $headers)
     {
@@ -140,10 +157,6 @@ class HttpClient
         $this->encoder = $encoder;
     }
 
-    /**
-     * @param $headers array[]
-     * @return array
-     */
     private function serializeHeaders($headers)
     {
         $headerArray = [];
@@ -156,13 +169,6 @@ class HttpClient
         return $headerArray;
     }
 
-    /**
-     * @param $response object
-     * @param $statusCode integer
-     * @param $errorCode integer
-     * @param $error string
-     * @return mixed response received from server
-     */
     private function parseResponse($response, $statusCode, $errorCode, $error)
     {
         if ($errorCode > 0) {
@@ -190,10 +196,6 @@ class HttpClient
         }
     }
 
-    /**
-     * @param $headers string
-     * @return array
-     */
     private function deserializeHeaders($headers)
     {
         if (strlen($headers) > 0) {

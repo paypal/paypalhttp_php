@@ -25,12 +25,6 @@ class HttpResponse
      */
     public $headers;
 
-    /**
-     * HttpResponse constructor.
-     * @param $statusCode integer
-     * @param $body array | string
-     * @param $headers array
-     */
     public function __construct($statusCode, $body, $headers)
     {
         $this->statusCode = $statusCode;

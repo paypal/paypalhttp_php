@@ -18,7 +18,7 @@ class HttpRequest
     public $path;
 
     /**
-     * @var array
+     * @var array | string
      */
     public $body;
 
@@ -31,11 +31,6 @@ class HttpRequest
      * @var array
      */
     public $headers;
-
-    /**
-     * @var string
-     */
-    public $responseClazz;
 
     function __construct($path, $verb)
     {

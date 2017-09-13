@@ -1,3 +1,5 @@
+require 'securerandom'
+
 #### releasinator config ####
 configatron.product_name = "BraintreeHttp-PHP"
 
@@ -6,12 +8,20 @@ configatron.prerelease_checklist_items = [
   "Sanity check the master branch."
 ]
 
-def validate_tests()
-  CommandProcessor.command("vendor/bin/phpunit", live_output=true)
+def test
+  ["56", "70", "71"].each do |version|
+    _test_with_dockerfile(version)
+  end
+end
+
+def _test_with_dockerfile(php_version)
+  tag = SecureRandom.uuid
+  CommandProcessor.command("docker build -f tests/Dockerfiles/php#{php_version}/Dockerfile -t #{tag} .")
+  CommandProcessor.command("docker run #{tag} ./vendor/bin/phpunit", live_output=true)
 end
 
 configatron.custom_validation_methods = [
-  method(:validate_tests)
+  method(:test)
 ]
 
 # there are no separate build steps for BraintreeHttp-PHP, so it is just empty method

@@ -9,18 +9,6 @@ use PHPUnit\Framework\TestCase;
 
 class EncoderTest extends TestCase
 {
-    public function testRegisterSerializer_addsSerializer()
-    {
-        $encoder = new Encoder();
-        $encoder->registerSerializer(new TestSerializer());
-
-        $httpRequest = new HttpRequest("/path", "post");
-        $httpRequest->headers['Content-Type'] = "test/test";
-        $httpRequest->body = "some string";
-        $result = $encoder->encode($httpRequest);
-        $this->assertEquals("test", $result);
-    }
-
     /**
      * @expectedException \Exception
      * @expectedExceptionMessage HttpRequest does not have Content-Type header set
@@ -44,7 +32,8 @@ class EncoderTest extends TestCase
         $httpRequest = new HttpRequest("/path", "post");
         $httpRequest->headers['Content-Type'] = "non-existent/type";
         $httpRequest->body = "some string";
-        $result = $encoder->encode($httpRequest);
+
+        $encoder->encode($httpRequest);
     }
 
     /**
@@ -57,6 +46,7 @@ class EncoderTest extends TestCase
         $httpRequest = new HttpRequest("/path", "post");
         $httpRequest->headers['Content-Type'] = "application/json";
         $httpRequest->body = new \stdClass();
+
         $encoder->encode($httpRequest);
     }
 
@@ -74,6 +64,7 @@ class EncoderTest extends TestCase
         ];
 
         $result = $encoder->encode($httpRequest);
+
         $this->assertEquals('{"key_one":"value_one","key_two":["one","two"]}', $result);
     }
 
@@ -115,24 +106,5 @@ class EncoderTest extends TestCase
 
         $this->assertEquals("value_one", $result->key_one);
         $this->assertEquals(["one", "two"], $result->key_two);
-    }
-}
-
-class TestSerializer implements Serializer
-{
-
-    public function contentType()
-    {
-        return "/^test\\/test/";
-    }
-
-    public function serialize(HttpRequest $request)
-    {
-        return "test";
-    }
-
-    public function deserialize($body)
-    {
-
     }
 }

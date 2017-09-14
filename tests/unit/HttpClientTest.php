@@ -246,7 +246,7 @@ class BasicInjector implements Injector
 
 class WhiteSpaceRemovingSerializingClient extends MockHttpClient
 {
-    public function serializeRequest($request)
+    public function serializeRequest(HttpRequest $request)
     {
         $str = "";
         foreach ($request->body as $body) {

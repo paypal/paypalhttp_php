@@ -21,11 +21,6 @@ class Encoder
         $this->serializers[] = new Text();
     }
 
-    public function registerSerializer(Serializer $serializer)
-    {
-        $this->serializers[] = $serializer;
-    }
-
     public function encode(HttpRequest $request)
     {
         if (!array_key_exists('Content-Type', $request->headers)) {
@@ -53,7 +48,7 @@ class Encoder
         /** @var Serializer $serializer */
         $serializer = $this->serializer($contentType);
         if (is_null($serializer)) {
-            throw new \Exception(sprintf("Unable to deserialize response with Content-Type: %s. Supported encodings are: %s", $contentType, $this->supportedEncodings()));
+            throw new \Exception(sprintf("Unable to deserialize response with Content-Type: %s. Supported encodings are: %s", $contentType, implode(", ", $this->supportedEncodings())));
         }
 
         return $serializer->deserialize($responseBody);

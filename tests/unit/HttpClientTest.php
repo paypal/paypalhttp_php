@@ -297,12 +297,12 @@ class DevelopmentEnvironment implements Environment
 
 class MockCurl extends Curl
 {
-    private $statusCode;
-    private $data;
-    private $headers;
-    private $errorCode;
-    private $error;
-    private $reqHeaders;
+    protected $statusCode;
+    protected $data;
+    protected $headers;
+    protected $errorCode = 0;
+    protected $error;
+    protected $reqHeaders;
 
     public function __construct($statusCode, $data = null, $headers = [], $errorCode = 0, $error = null)
     {
@@ -364,5 +364,21 @@ class MockCurl extends Curl
     public function error()
     {
         return $this->error;
+    }
+}
+
+class MockRawCurl extends MockCurl
+{
+    private $rawData;
+
+    public function __construct($statusCode, $rawData)
+    {
+        $this->statusCode = $statusCode;
+        $this->rawData = $rawData;
+    }
+
+    public function exec()
+    {
+        return $this->rawData;
     }
 }

@@ -3,6 +3,7 @@
 namespace BraintreeHttp;
 
 use BraintreeHttp\Serializer\Json;
+use BraintreeHttp\Serializer\Multipart;
 use BraintreeHttp\Serializer\Text;
 
 /**
@@ -19,6 +20,7 @@ class Encoder
     {
         $this->serializers[] = new Json();
         $this->serializers[] = new Text();
+        $this->serializers[] = new Multipart();
     }
 
     public function encode(HttpRequest $request)

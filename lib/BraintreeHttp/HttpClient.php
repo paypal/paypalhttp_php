@@ -176,7 +176,7 @@ class HttpClient
         }
 
         list($headers, $body) = explode("\r\n\r\n", $response, 2);
-        if(strpos($headers," 100 Continue")!==false){
+        if(strpos($headers," 100 Continue") !== false){
             list($headers, $body) = explode( "\r\n\r\n", $body , 2);
         }
 

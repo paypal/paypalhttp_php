@@ -9,6 +9,7 @@ configatron.prerelease_checklist_items = [
 ]
 
 def test
+  CommandProcessor.command("composer update", live_output=true)
   CommandProcessor.command("vendor/bin/phpunit", live_output=true)
 end
 

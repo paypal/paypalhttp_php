@@ -9,15 +9,7 @@ configatron.prerelease_checklist_items = [
 ]
 
 def test
-  ["56", "70", "71"].each do |version|
-    _test_with_dockerfile(version)
-  end
-end
-
-def _test_with_dockerfile(php_version)
-  tag = SecureRandom.uuid
-  CommandProcessor.command("docker build -f tests/Dockerfiles/php#{php_version}/Dockerfile -t #{tag} .")
-  CommandProcessor.command("docker run #{tag} ./vendor/bin/phpunit", live_output=true)
+  CommandProcessor.command("vendor/bin/phpunit", live_output=true)
 end
 
 configatron.custom_validation_methods = [
@@ -37,23 +29,6 @@ end
 
 # The method that publishes the sdk to the package manager.  Required.
 configatron.publish_to_package_manager_method = method(:publish_to_package_manager)
-
-def create_downloadable_zip(version)
-  sleep(120)
-  CommandProcessor.command("rm -rf temp; mkdir temp; cd temp; composer clear-cache; composer require 'braintree/braintreehttp:#{version}'", live_output=true)
-  CommandProcessor.command("cd temp; mv vendor BraintreeHttp-PHP", live_output=true)
-  CommandProcessor.command("cd temp; zip -r BraintreeHttp-PHP-#{version}.zip BraintreeHttp-PHP", live_output=true)
-end
-
-def add_to_release(version)
-  sleep(30)
-  Publisher.new(@releasinator_config).upload_asset(GitUtil.repo_url, @current_release, "temp/BraintreeHttp-PHP-#{version}.zip", "application/zip")
-end
-
-configatron.post_push_methods = [
-  method(:create_downloadable_zip),
-  method(:add_to_release)
-]
 
 def wait_for_package_manager(version)
 end

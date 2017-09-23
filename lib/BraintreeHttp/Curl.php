@@ -11,13 +11,16 @@ namespace BraintreeHttp;
  */
 class Curl
 {
-
     protected $curl;
 
-    public function init()
+    public function __construct($curl = NULL)
     {
-        $this->curl = curl_init();
-        return $this;
+
+        if (is_null($curl))
+        {
+            $curl = curl_init();
+        }
+        $this->curl = $curl;
     }
 
     public function setOpt($option, $value)

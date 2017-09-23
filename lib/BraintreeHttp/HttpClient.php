@@ -21,11 +21,6 @@ class HttpClient
     public $injectors = [];
 
     /**
-     * @var Curl
-     */
-    private $curl;
-
-    /**
      * @var Encoder
      */
     private $encoder;
@@ -40,6 +35,7 @@ class HttpClient
     {
         $this->environment = $environment;
         $this->encoder = new Encoder();
+        $this->curlCls = Curl::class;
     }
 
     /**
@@ -59,10 +55,11 @@ class HttpClient
      * @param $httpRequest HttpRequest
      * @return HttpResponse
      */
-    public function execute(HttpRequest $httpRequest)
+    public function execute(HttpRequest $httpRequest, Curl $curl = NULL)
     {
-        if ($this->curl === null) {
-            $this->curl = new Curl();
+        if (is_null($curl))
+        {
+            $curl = new Curl();
         }
 
         foreach ($this->injectors as $inj) {
@@ -75,34 +72,29 @@ class HttpClient
 
         $url = $this->environment->baseUrl() . $httpRequest->path;
 
-        $this->curl->init();
-        $this->curl->setOpt(CURLOPT_URL, $url);
-        $this->curl->setOpt(CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
-        $this->curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
-        $this->curl->setOpt(CURLOPT_RETURNTRANSFER, true);
-        $this->curl->setOpt(CURLOPT_HEADER, 1);
+        $curl->setOpt(CURLOPT_URL, $url);
+        $curl->setOpt(CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
+        $curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
+        $curl->setOpt(CURLOPT_RETURNTRANSFER, 1);
+        $curl->setOpt(CURLOPT_HEADER, 1);
 
         if (!is_null($httpRequest->body)) {
-            $this->curl->setOpt(CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
+            $curl->setOpt(CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
         }
 
         if (strpos($this->environment->baseUrl(), "https://") === 0) {
-            $this->curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
-            $this->curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
+            $curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
+            $curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
         }
 
         if ($caCertPath = $this->getCACertFilePath()) {
-            $this->curl->setOpt(CURLOPT_CAINFO, $caCertPath);
+            $curl->setOpt(CURLOPT_CAINFO, $caCertPath);
         }
 
-        $response = $this->curl->exec();
-        $statusCode = $this->curl->getInfo(CURLINFO_HTTP_CODE);
-        $errorCode = $this->curl->errNo();
-        $error = $this->curl->error();
+        $response = $this->parseResponse($curl);
+        $curl->close();
 
-        $this->curl->close();
-
-        return $this->parseResponse($response, $statusCode, $errorCode, $error);
+        return $response;
     }
 
     /**
@@ -169,33 +161,41 @@ class HttpClient
         return $headerArray;
     }
 
-    private function parseResponse($response, $statusCode, $errorCode, $error)
+    private function parseResponse($curl)
     {
+        $responseData = $curl->exec();
+        $statusCode = $curl->getInfo(CURLINFO_HTTP_CODE);
+        $errorCode = $curl->errNo();
+        $error = $curl->error();
+
         if ($errorCode > 0) {
             throw new IOException($error, $errorCode);
         }
 
-        list($headers, $body) = explode("\r\n\r\n", $response, 2);
-        if(strpos($headers," 100 Continue") !== false){
-            list($headers, $body) = explode( "\r\n\r\n", $body , 2);
+        $offset = 0;
+
+        $continue = strpos($responseData, " 100 Continue");
+        if ($continue !== false) 
+        {
+            $offset = $continue + 16; // len of '100 Continue' + CRLF
         }
 
-        $headers = $this->deserializeHeaders($headers);
-        $responseBody = NULL;
-        if (!ctype_space($body)) {
-            $responseBody = $this->deserializeResponse($body, $headers);
-        }
+	    $headerSize = strpos($responseData, "\r\n\r\n", $offset);
+        $headers = $this->deserializeHeaders(substr($responseData, $offset, $headerSize));
+		$body = trim(substr($responseData, $headerSize));
 
-        $response = new HttpResponse(
-            $errorCode === 0 ? $statusCode : $errorCode,
-            $responseBody,
-            $headers
-        );
-
-        if ($response->statusCode >= 200 && $response->statusCode < 300) {
-            return $response;
+        if ($statusCode >= 200 && $statusCode < 300) {
+            $responseBody = NULL;
+            if (!empty($body)) {
+                $responseBody = $this->deserializeResponse($body, $headers);
+            }
+            return new HttpResponse(
+                $errorCode === 0 ? $statusCode : $errorCode,
+                $responseBody,
+                $headers
+            );
         } else {
-            throw new HttpException($response);
+            throw new HttpException($body, $statusCode, $headers);
         }
     }
 
@@ -203,13 +203,14 @@ class HttpClient
     {
         if (strlen($headers) > 0) {
             $split = explode("\r\n", $headers);
-            array_shift($split);
             $separatedHeaders = [];
             foreach ($split as $header) {
-                if (!empty($header)) {
-                    list($key, $val) = explode(":", $header);
-                    $separatedHeaders[$key] = trim($val);
+                if (empty($header) || strpos($header, ':') === false) {
+                    continue;
                 }
+
+                list($key, $val) = explode(":", $header);
+                $separatedHeaders[$key] = trim($val);
             }
 
             return $separatedHeaders;

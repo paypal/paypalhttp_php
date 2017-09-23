@@ -147,9 +147,9 @@ class HttpClientTest extends TestCase
         $client = new MockHttpClient($environment, $mock);
 
         $req = new HttpRequest("/path", "POST");
-        $res = $client->execute($req);
+        $response = $client->execute($req);
 
-        $this->assertEquals("Some value", $res->headers["Some-key"]);
+        $this->assertEquals("Some value", $response->headers["Some-key"]);
     }
 
     public function testExecute_defersToSubclassToSerialize()
@@ -177,6 +177,18 @@ class HttpClientTest extends TestCase
         $this->assertEquals('{"myJSON": "isBetterThanYourJSON"}', $res->result);
     }
 
+    public function testExecute_doesNotDeserializeResponseWhenBodyEmpty()
+    {
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200, "", []))->makePartial();
+        $client = new FailOnDeserializeHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "GET");
+        $res = $client->execute($req);
+
+        $this->assertNull($res->result);
+    }
+
     public function testExecute_throwsForNon200LevelResponse()
     {
         $environment = new DevelopmentEnvironment("http://localhost");
@@ -192,12 +204,9 @@ class HttpClientTest extends TestCase
             $client->execute($req);
             $this->fail("expected execute to throw");
         } catch (HttpException $e) {
-            $this->assertEquals(400, $e->response->statusCode);
-            $this->assertArraySubset(["Debug-Id" => "Debug Data"], $e->response->headers);
-            $this->assertEquals("Response body", $e->response->result);
-        } catch (\Exception $e) {
-            echo($e);
-            $this->fail("execute threw non-HttpException");
+            $this->assertEquals(400, $e->statusCode);
+            $this->assertArraySubset(["Debug-Id" => "Debug Data"], $e->headers);
+            $this->assertEquals("Response body", $e->getMessage());
         }
     }
 
@@ -240,12 +249,25 @@ class HttpClientTest extends TestCase
 
 class MockHttpClient extends HttpClient
 {
-    public function __construct(Environment $environment, Curl $curl = null)
+    private $mockCurl;
+
+    function __construct($environment, MockCurl $curl = NULL) 
     {
         parent::__construct($environment);
-        if ($curl) {
-            $this->setCurl($curl);
-        }
+        $this->mockCurl = $curl;
+    }
+
+    public function execute(HttpRequest $request) 
+    {
+        return parent::execute($request, $this->mockCurl);
+    }
+}
+
+class FailOnDeserializeHttpClient extends MockHttpClient
+{
+    public function deserializeResponse($response, $header)
+    {
+        throw new \Exception("deserializeResponse should not have been called");
     }
 }
 
@@ -322,15 +344,7 @@ class MockCurl extends Curl
         return $this;
     }
 
-    public function init()
-    {
-        return $this;
-    }
-
-    public function close()
-    {
-        // do nothing
-    }
+    public function close() {}
 
     public function getInfo($option = null)
     {

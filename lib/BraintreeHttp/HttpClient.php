@@ -83,7 +83,7 @@ class HttpClient
         $this->curl->setOpt(CURLOPT_HEADER, 1);
 
         if (!is_null($httpRequest->body)) {
-            $this->curl->setOpt(CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
+            $this->curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($httpRequest));
         }
 
         if (strpos($this->environment->baseUrl(), "https://") === 0) {
@@ -113,29 +113,6 @@ class HttpClient
     public function userAgent()
     {
         return "BraintreeHttp-PHP HTTP/1.1";
-    }
-
-    /**
-     * Serialize request to be sent to server
-     *
-     * @param $request HttpRequest
-     * @return string
-     */
-    public function serializeRequest(HttpRequest $request)
-    {
-        return $this->encoder->encode($request);
-    }
-
-    /**
-     * De-serializes response received from server to expected output.
-     *
-     * @param $responseBody string
-     * @param $headers array
-     * @return mixed de-serialized response
-     */
-    public function deserializeResponse($responseBody, $headers)
-    {
-        return $this->encoder->decode($responseBody, $headers);
     }
 
     /**
@@ -183,7 +160,7 @@ class HttpClient
         $headers = $this->deserializeHeaders($headers);
         $responseBody = NULL;
         if (!ctype_space($body)) {
-            $responseBody = $this->deserializeResponse($body, $headers);
+            $responseBody = $this->encoder->decode($body, $headers);
         }
 
         $response = new HttpResponse(

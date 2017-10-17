@@ -1,5 +1,5 @@
 source 'https://rubygems.org'
 
-gem 'releasinator', '~> 0.6'
+gem 'releasinator', '~> 0.7'
 gem 'rake'
 

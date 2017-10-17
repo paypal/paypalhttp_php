@@ -34,8 +34,13 @@ configatron.publish_to_package_manager_method = method(:publish_to_package_manag
 def wait_for_package_manager(version)
 end
 
+# Version is tied to the current tag, noop
+def update_version_method(version)
+end
+
 # The method that waits for the package manager to be done.  Required
 configatron.wait_for_package_manager_method = method(:wait_for_package_manager)
+configatron.update_version_method = method(:update_version_method)
 
 # Whether to publish the root repo to GitHub.  Required.
 configatron.release_to_github = true

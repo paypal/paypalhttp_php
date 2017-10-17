@@ -23,7 +23,7 @@ class HttpClient
     /**
      * @var Encoder
      */
-    private $encoder;
+    public $encoder;
 
     /**
      * HttpClient constructor. Pass the environment you wish to make calls to.

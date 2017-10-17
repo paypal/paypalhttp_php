@@ -23,7 +23,7 @@ class HttpClient
     /**
      * @var Encoder
      */
-    private $encoder;
+    public $encoder;
 
     /**
      * HttpClient constructor. Pass the environment you wish to make calls to.
@@ -79,7 +79,7 @@ class HttpClient
         $curl->setOpt(CURLOPT_HEADER, 1);
 
         if (!is_null($httpRequest->body)) {
-            $curl->setOpt(CURLOPT_POSTFIELDS, $this->serializeRequest($httpRequest));
+            $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($httpRequest));
         }
 
         if (strpos($this->environment->baseUrl(), "https://") === 0) {
@@ -105,29 +105,6 @@ class HttpClient
     public function userAgent()
     {
         return "BraintreeHttp-PHP HTTP/1.1";
-    }
-
-    /**
-     * Serialize request to be sent to server
-     *
-     * @param $request HttpRequest
-     * @return string
-     */
-    public function serializeRequest(HttpRequest $request)
-    {
-        return $this->encoder->encode($request);
-    }
-
-    /**
-     * De-serializes response received from server to expected output.
-     *
-     * @param $responseBody string
-     * @param $headers array
-     * @return mixed de-serialized response
-     */
-    public function deserializeResponse($responseBody, $headers)
-    {
-        return $this->encoder->decode($responseBody, $headers);
     }
 
     /**
@@ -187,7 +164,7 @@ class HttpClient
         if ($statusCode >= 200 && $statusCode < 300) {
             $responseBody = NULL;
             if (!empty($body)) {
-                $responseBody = $this->deserializeResponse($body, $headers);
+                $responseBody = $this->encoder->decode($body, $headers);
             }
             return new HttpResponse(
                 $errorCode === 0 ? $statusCode : $errorCode,

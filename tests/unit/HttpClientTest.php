@@ -152,43 +152,6 @@ class HttpClientTest extends TestCase
         $this->assertEquals("Some value", $response->headers["Some-key"]);
     }
 
-    public function testExecute_defersToSubclassToSerialize()
-    {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new WhiteSpaceRemovingSerializingClient($environment, $mock);
-
-        $req = new HttpRequest("/path", "POST");
-        $req->body[] = "some data here";
-        $client->execute($req);
-
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_POSTFIELDS, "somedatahere"])->once();
-    }
-
-    public function testExecute_defersToSubclassToDeserialize()
-    {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200, "some junk data", ["myKey" => "myValue"]))->makePartial();
-        $client = new FancyResponseDeserializingClient($environment, $mock);
-
-        $req = new HttpRequest("/path", "POST");
-        $res = $client->execute($req);
-
-        $this->assertEquals('{"myJSON": "isBetterThanYourJSON"}', $res->result);
-    }
-
-    public function testExecute_doesNotDeserializeResponseWhenBodyEmpty()
-    {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200, "", []))->makePartial();
-        $client = new FailOnDeserializeHttpClient($environment, $mock);
-
-        $req = new HttpRequest("/path", "GET");
-        $res = $client->execute($req);
-
-        $this->assertNull($res->result);
-    }
-
     public function testExecute_throwsForNon200LevelResponse()
     {
         $environment = new DevelopmentEnvironment("http://localhost");
@@ -257,17 +220,9 @@ class MockHttpClient extends HttpClient
         $this->mockCurl = $curl;
     }
 
-    public function execute(HttpRequest $request) 
+    public function execute(HttpRequest $request, CURL $curl = NULL)
     {
         return parent::execute($request, $this->mockCurl);
-    }
-}
-
-class FailOnDeserializeHttpClient extends MockHttpClient
-{
-    public function deserializeResponse($response, $header)
-    {
-        throw new \Exception("deserializeResponse should not have been called");
     }
 }
 

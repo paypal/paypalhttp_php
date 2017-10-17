@@ -2,8 +2,9 @@
 
 namespace BraintreeHttp;
 
+use BraintreeHttp\Serializer\Form;
 use BraintreeHttp\Serializer\Json;
-use BraintreeHttp\Serializer\Multipart;
+use BraintreeHttp\Serializer\CurlSupported;
 use BraintreeHttp\Serializer\Text;
 
 /**
@@ -20,7 +21,8 @@ class Encoder
     {
         $this->serializers[] = new Json();
         $this->serializers[] = new Text();
-        $this->serializers[] = new Multipart();
+        $this->serializers[] = new CurlSupported();
+        $this->serializers[] = new Form();
     }
 
     public function encode(HttpRequest $request)

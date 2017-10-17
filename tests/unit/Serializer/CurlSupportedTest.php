@@ -3,18 +3,18 @@
 namespace Test\Unit;
 
 use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer\Multipart;
+use BraintreeHttp\Serializer\CurlSupported;
 use PHPUnit\Framework\TestCase;
 
-class MultipartTest extends TestCase {
+class CurlSupportedTest extends TestCase {
 
     /**
      * @expectedException \Exception
      * @expectedExceptionMessage HttpRequest body must be an associative array when Content-Type is:
      */
-    public function testMultipart_throwsWhenRequestBodyNotArray() 
+    public function testCurlSupportedThrowsWhenRequestBodyNotArray()
     {
-        $multipart = new Multipart();
+        $multipart = new CurlSupported();
 
         $request = new HttpRequest("/", "POST");
         $request->body = "";
@@ -23,9 +23,13 @@ class MultipartTest extends TestCase {
         $multipart->serialize($request);
     }
 
-    public function testMultipart_throwsWhenRequestBodyNotAssociativeArray() 
+    /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage HttpRequest body must be an associative array when Content-Type is:
+     */
+    public function testCurlSupportedThrowsWhenRequestBodyNotAssociativeArray()
     {
-        $multipart = new Multipart();
+        $multipart = new CurlSupported();
 
         $body = [];
         $body[] = "form-param 1";
@@ -34,5 +38,7 @@ class MultipartTest extends TestCase {
         $request = new HttpRequest("/", "POST");
         $request->body = $body;
         $request->headers["Content-Type"] = "multipart/form-data";
+
+        $multipart->serialize($request);
     }
 }

@@ -1,3 +1,6 @@
+## 0.2.1
+- Relax json content-type regex to allow content types with charset to be parset correctly.
+
 ## 0.2.0
 - Expose Encoder in HttpClient.
 - Support x-www-form-urlencoded post bodies.

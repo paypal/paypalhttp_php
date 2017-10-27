@@ -16,7 +16,7 @@ class Json implements Serializer
 
     public function contentType()
     {
-        return "/^application\\/json$/";
+        return "/^application\\/json/";
     }
 
     public function serialize(HttpRequest $request)

@@ -107,4 +107,18 @@ class EncoderTest extends TestCase
         $this->assertEquals("value_one", $result->key_one);
         $this->assertEquals(["one", "two"], $result->key_two);
     }
+
+    public function testDecode_deserializesResponseWithContentEncoding()
+    {
+        $encoder = new Encoder();
+        $responseBody = '{"key_one":"value_one","key_two":["one","two"]}';
+        $headers = [
+            "Content-Type" => "application/json; charset=utf-8"
+        ];
+
+        $result = $encoder->decode($responseBody, $headers);
+
+        $this->assertEquals("value_one", $result->key_one);
+        $this->assertEquals(["one", "two"], $result->key_two);
+    }
 }

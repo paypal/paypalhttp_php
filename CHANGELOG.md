@@ -1,3 +1,6 @@
+## 0.2.2
+- Add gzip compression/decompression.
+
 ## 0.2.1
 - Relax json content-type regex to allow content types with charset to be parset correctly.
 

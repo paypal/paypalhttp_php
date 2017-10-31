@@ -186,6 +186,40 @@ class HttpClientTest extends TestCase
         $this->assertEquals("Successfully dumped some data.\nAnother line of data\nLast one.", $res->result);
     }
 
+    public function testExecute_gzipsDataInRequestIfGzipHeaderSet()
+    {
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $responseHeaders = [
+            "Content-Type" => "text/plain"
+        ];
+        $mock = \Mockery::mock(new MockCurl(200, NULL, $responseHeaders))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "POST");
+        $req->headers["Content-Type"] = "text/plain";
+        $req->headers["Content-Encoding"] = "gzip";
+        $req->body = "some text to be encoded";
+
+        $client->execute($req);
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_POSTFIELDS, gzencode("some text to be encoded")])->once();
+    }
+
+    public function testExecute_decompressesGzipDataInResponseIfGzipHeaderSet()
+    {
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $responseHeaders = [
+            "Content-Type" => "text/plain",
+            "Content-Encoding" => "gzip"
+        ];
+        $mock = \Mockery::mock(new MockCurl(200, gzencode("some text to be encoded"), $responseHeaders))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "GET");
+
+        $resp = $client->execute($req);
+        $this->assertEquals("some text to be encoded", $resp->result);
+    }
+
     private function serializeHeaders($headers)
     {
         $headerArray = [];

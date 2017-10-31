@@ -79,7 +79,14 @@ class HttpClient
         $curl->setOpt(CURLOPT_HEADER, 1);
 
         if (!is_null($httpRequest->body)) {
-            $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($httpRequest));
+            if (array_key_exists("Content-Encoding", $httpRequest->headers) && $httpRequest->headers["Content-Encoding"] === "gzip")
+            {
+                $curl->setOpt(CURLOPT_POSTFIELDS, gzencode($this->encoder->encode($httpRequest)));
+            }
+            else
+            {
+                $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($httpRequest));
+            }
         }
 
         if (strpos($this->environment->baseUrl(), "https://") === 0) {
@@ -152,14 +159,21 @@ class HttpClient
         $offset = 0;
 
         $continue = strpos($responseData, " 100 Continue");
-        if ($continue !== false) 
+        if ($continue !== false)
         {
             $offset = $continue + 16; // len of '100 Continue' + CRLF
         }
 
 	    $headerSize = strpos($responseData, "\r\n\r\n", $offset);
         $headers = $this->deserializeHeaders(substr($responseData, $offset, $headerSize));
-		$body = trim(substr($responseData, $headerSize));
+
+        if (array_key_exists("Content-Encoding", $headers) && $headers["Content-Encoding"] === "gzip")
+        {
+            $body = gzdecode(substr($responseData, $headerSize + 4));
+        } else
+        {
+            $body = trim(substr($responseData, $headerSize));
+        }
 
         if ($statusCode >= 200 && $statusCode < 300) {
             $responseBody = NULL;

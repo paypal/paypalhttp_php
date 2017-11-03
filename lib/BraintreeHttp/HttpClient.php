@@ -57,35 +57,37 @@ class HttpClient
      */
     public function execute(HttpRequest $httpRequest, Curl $curl = NULL)
     {
+        $requestCpy = clone $httpRequest;
+
         if (is_null($curl))
         {
             $curl = new Curl();
         }
 
         foreach ($this->injectors as $inj) {
-            $inj->inject($httpRequest);
+            $inj->inject($requestCpy);
         }
 
-        if (!array_key_exists("User-Agent", $httpRequest->headers)) {
-            $httpRequest->headers["User-Agent"] = $this->userAgent();
+        if (!array_key_exists("User-Agent", $requestCpy->headers)) {
+            $requestCpy->headers["User-Agent"] = $this->userAgent();
         }
 
-        $url = $this->environment->baseUrl() . $httpRequest->path;
+        $url = $this->environment->baseUrl() . $requestCpy->path;
 
         $curl->setOpt(CURLOPT_URL, $url);
-        $curl->setOpt(CURLOPT_CUSTOMREQUEST, $httpRequest->verb);
-        $curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($httpRequest->headers));
+        $curl->setOpt(CURLOPT_CUSTOMREQUEST, $requestCpy->verb);
+        $curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($requestCpy->headers));
         $curl->setOpt(CURLOPT_RETURNTRANSFER, 1);
         $curl->setOpt(CURLOPT_HEADER, 1);
 
-        if (!is_null($httpRequest->body)) {
-            if (array_key_exists("Content-Encoding", $httpRequest->headers) && $httpRequest->headers["Content-Encoding"] === "gzip")
+        if (!is_null($requestCpy->body)) {
+            if (array_key_exists("Content-Encoding", $requestCpy->headers) && $requestCpy->headers["Content-Encoding"] === "gzip")
             {
-                $curl->setOpt(CURLOPT_POSTFIELDS, gzencode($this->encoder->encode($httpRequest)));
+                $curl->setOpt(CURLOPT_POSTFIELDS, gzencode($this->encoder->encode($requestCpy)));
             }
             else
             {
-                $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($httpRequest));
+                $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($requestCpy));
             }
         }
 

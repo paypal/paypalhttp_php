@@ -50,7 +50,7 @@ class HttpClientTest extends TestCase
         $req = new HttpRequest("/path", "GET");
         $client->execute($req);
 
-        $this->assertEquals("/some-other-path", $req->path);
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_URL, "http://localhost/some-other-path"])->once();
     }
 
     public function testExecute_formsRequestProperly()
@@ -64,9 +64,12 @@ class HttpClientTest extends TestCase
         $req->body = "some data";
         $client->execute($req);
 
+        $expectedHeaders = $this->serializeHeaders($req->headers);
+        $expectedHeaders[] = "User-Agent: " . $client->userAgent();
+
         $mock->shouldHaveReceived('setOpt', [CURLOPT_URL, "http://localhost/path"])->once();
         $mock->shouldHaveReceived('setOpt', [CURLOPT_CUSTOMREQUEST, "POST"])->once();
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, $this->serializeHeaders($req->headers)])->once();
+        $mock->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, $expectedHeaders])->once();
         $mock->shouldHaveReceived('setOpt', [CURLOPT_POSTFIELDS, "some data"])->once();
         $mock->shouldHaveReceived('setOpt', [CURLOPT_RETURNTRANSFER, 1])->once();
         $mock->shouldHaveReceived('setOpt', [CURLOPT_HEADER, 1])->once();
@@ -218,6 +221,19 @@ class HttpClientTest extends TestCase
 
         $resp = $client->execute($req);
         $this->assertEquals("some text to be encoded", $resp->result);
+    }
+
+    public function testExecute_doesNotModifyOriginalRequest()
+    {
+        $environment = new DevelopmentEnvironment("http://localhost");
+        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
+        $client = new MockHttpClient($environment, $mock);
+
+        $req = new HttpRequest("/path", "GET");
+
+        $client->execute($req);
+
+        $this->assertEquals(0, sizeof($req->headers));
     }
 
     private function serializeHeaders($headers)

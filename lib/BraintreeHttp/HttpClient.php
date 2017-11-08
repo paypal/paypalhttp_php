@@ -55,14 +55,10 @@ class HttpClient
      * @param $httpRequest HttpRequest
      * @return HttpResponse
      */
-    public function execute(HttpRequest $httpRequest, Curl $curl = NULL)
+    public function execute(HttpRequest $httpRequest)
     {
         $requestCpy = clone $httpRequest;
-
-        if (is_null($curl))
-        {
-            $curl = new Curl();
-        }
+        $curl = new Curl();
 
         foreach ($this->injectors as $inj) {
             $inj->inject($requestCpy);
@@ -81,12 +77,9 @@ class HttpClient
         $curl->setOpt(CURLOPT_HEADER, 1);
 
         if (!is_null($requestCpy->body)) {
-            if (array_key_exists("Content-Encoding", $requestCpy->headers) && $requestCpy->headers["Content-Encoding"] === "gzip")
-            {
+            if (array_key_exists("Content-Encoding", $requestCpy->headers) && $requestCpy->headers["Content-Encoding"] === "gzip") {
                 $curl->setOpt(CURLOPT_POSTFIELDS, gzencode($this->encoder->encode($requestCpy)));
-            }
-            else
-            {
+            } else {
                 $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($requestCpy));
             }
         }
@@ -158,24 +151,10 @@ class HttpClient
             throw new IOException($error, $errorCode);
         }
 
-        $offset = 0;
+        $headers = [];
+        $body = "";
 
-        $continue = strpos($responseData, " 100 Continue");
-        if ($continue !== false)
-        {
-            $offset = $continue + 16; // len of '100 Continue' + CRLF
-        }
-
-	    $headerSize = strpos($responseData, "\r\n\r\n", $offset);
-        $headers = $this->deserializeHeaders(substr($responseData, $offset, $headerSize));
-
-        if (array_key_exists("Content-Encoding", $headers) && $headers["Content-Encoding"] === "gzip")
-        {
-            $body = gzdecode(substr($responseData, $headerSize + 4));
-        } else
-        {
-            $body = trim(substr($responseData, $headerSize));
-        }
+        $this->parseHttp($responseData, $headers, $body);
 
         if ($statusCode >= 200 && $statusCode < 300) {
             $responseBody = NULL;
@@ -192,23 +171,55 @@ class HttpClient
         }
     }
 
-    private function deserializeHeaders($headers)
+    private function parseHttp($data, &$headers, &$body)
     {
-        if (strlen($headers) > 0) {
-            $split = explode("\r\n", $headers);
-            $separatedHeaders = [];
-            foreach ($split as $header) {
-                if (empty($header) || strpos($header, ':') === false) {
-                    continue;
-                }
+        $offset = 0;
+        $crlf = "\r\n";
+        $section = 0;
 
-                list($key, $val) = explode(":", $header);
-                $separatedHeaders[$key] = trim($val);
+        while (true) {
+            $endl = strpos($data, $crlf, $offset);
+
+            if ($endl === false) {
+                $endl = strlen($data);
             }
 
-            return $separatedHeaders;
-        } else {
-            return [];
+            $line = substr($data, $offset, $endl - $offset);
+            $offset = $endl + 2;
+
+            switch ($section) {
+                case 0:
+                    $section++;
+                    break;
+                case 1:
+                    if ($line === "") {
+                        $section++;
+                        break;
+                    }
+
+                    $k = "";
+                    $v = "";
+
+                    $this->deserializeHeader($line, $k, $v);
+                    $headers[$k] = $v;
+                    break;
+                case 2:
+                    $body = $line;
+                    return;
+            }
+        }
+    }
+
+    private function deserializeHeader($header, &$key, &$value)
+    {
+        if (strlen($header) > 0) {
+            if (empty($header) || strpos($header, ':') === false) {
+                return NULL;
+            }
+
+            list($k, $v) = explode(":", $header);
+            $key = trim($k);
+            $value = trim($v);
         }
     }
 }

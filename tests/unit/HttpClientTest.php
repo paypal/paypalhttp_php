@@ -139,7 +139,7 @@ class HttpClientTest extends TestCase
             ->withHeader("Custom-Header", WireMock::equalTo("Custom value")));
     }
 
-    public function testExecute_setsHeadersFromResponse()
+    public function testExecute_parsesHeadersFromResponse()
     {
         $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
             ->willReturn(WireMock::aResponse()

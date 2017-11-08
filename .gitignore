@@ -24,3 +24,5 @@ composer.lock
 .idea/php.xml
 .idea/php-test-framework.xml
 .idea/modules.xml
+__files/*
+mappings/*

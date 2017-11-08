@@ -9,14 +9,34 @@ use BraintreeHttp\HttpException;
 use BraintreeHttp\HttpRequest;
 use BraintreeHttp\Injector;
 use PHPUnit\Framework\TestCase;
+use WireMock\Client\WireMock;
 
 class HttpClientTest extends TestCase
 {
+    private $wireMock;
+    private $environment;
+
+    public function setUp()
+    {
+        $this->wireMock = WireMock::create();
+        $this->environment = new DevelopmentEnvironment("http://localhost:8080");
+
+        $this->assertTrue($this->wireMock->isAlive());
+    }
+
+    public static function setUpBeforeClass()
+    {
+        exec('java -jar ./tests/wiremock-standalone.jar --port 8080 --https-port 8443 > /dev/null 2>&1 &');
+    }
+
+    public static function tearDownAfterClass()
+    {
+        exec('ps aux | grep wiremock | grep -v grep | awk \'{print $2}\' | xargs kill -9');
+    }
 
     public function testAddInjector_addsInjectorToInjectorList()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $client = new MockHttpClient($environment);
+        $client = new HttpClient($this->environment);
 
         $inj = new BasicInjector();
         $client->addInjector($inj);
@@ -26,8 +46,7 @@ class HttpClientTest extends TestCase
 
     public function testAddsMultipleInjectors_addsMultipleInjectorsToInjectorList()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $client = new MockHttpClient($environment);
+        $client = new HttpClient($this->environment);
 
         $inj1 = new BasicInjector();
         $client->addInjector($inj1);
@@ -40,130 +59,115 @@ class HttpClientTest extends TestCase
 
     public function testExecute_usesInjectorsToModifyRequest()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::get(WireMock::urlEqualTo("/some-other-path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
 
+        $client = new HttpClient($this->environment);
         $injector = new BasicInjector();
         $client->addInjector($injector);
 
         $req = new HttpRequest("/path", "GET");
-        $client->execute($req);
 
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_URL, "http://localhost/some-other-path"])->once();
+        $client->execute($req);
+        $this->wireMock->verify(WireMock::getRequestedFor(WireMock::urlEqualTo("/some-other-path")));
     }
 
     public function testExecute_formsRequestProperly()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
-        $req->headers["Content-Type"] = "application/json";
-        $req->body = "some data";
-        $client->execute($req);
-
-        $expectedHeaders = $this->serializeHeaders($req->headers);
-        $expectedHeaders[] = "User-Agent: " . $client->userAgent();
-
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_URL, "http://localhost/path"])->once();
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_CUSTOMREQUEST, "POST"])->once();
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, $expectedHeaders])->once();
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_POSTFIELDS, "some data"])->once();
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_RETURNTRANSFER, 1])->once();
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_HEADER, 1])->once();
-        $mock->shouldHaveReceived('close')->once();
-    }
-
-    public function testExecute_setsSSLIfBaseUrlIsHttps()
-    {
-        $environment = new DevelopmentEnvironment("https://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
-
-        $req = new HttpRequest("/path", "POST");
-        $req->body[] = "some data";
         $req->headers["Content-Type"] = "text/plain";
+        $req->body = "some data";
+
         $client->execute($req);
 
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_SSL_VERIFYPEER, true])->once();
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_SSL_VERIFYHOST, 2])->once();
+        $this->wireMock->verify(WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
+            ->withHeader("Content-Type", WireMock::equalTo("text/plain"))
+            ->withRequestBody(WireMock::equalTo("some data")));
     }
 
     public function testExecute_setsUserAgentIfNotSet()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
         $client->execute($req);
 
-        $mock
-            ->shouldHaveReceived('setOpt')
-            ->with(CURLOPT_HTTPHEADER, \Mockery::on(function ($argument) use ($client) {
-                return $client->userAgent() === $this->deserializeHeaders($argument)['User-Agent'];
-            }));
+        $this->wireMock->verify(WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
+            ->withHeader("User-Agent", WireMock::equalTo($client->userAgent())));
     }
 
     public function testExecute_doesNotSetUserAgentIfAlreadySet()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
         $req->headers["User-Agent"] = "Example user-agent";
         $client->execute($req);
 
-        $mock
-            ->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, \Mockery::on(function ($argument) {
-                return "Example user-agent" === $this->deserializeHeaders($argument)['User-Agent'];
-            })]);
+        $this->wireMock->verify(WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
+            ->withHeader("User-Agent", WireMock::equalTo("Example user-agent")));
     }
 
     public function testExecute_setsHeadersInRequest()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
         $req->headers["Custom-Header"] = "Custom value";
         $client->execute($req);
 
-        $mock
-            ->shouldHaveReceived('setOpt', [CURLOPT_HTTPHEADER, \Mockery::on(function ($argument) {
-                return "Custom value" === $this->deserializeHeaders($argument)['Custom-Header'];
-            })]);
+        $this->wireMock->verify(WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
+            ->withHeader("Custom-Header", WireMock::equalTo("Custom value")));
     }
 
     public function testExecute_setsHeadersFromResponse()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $responseHeaders = [
-            "Some-key" => "Some value",
-            "Content-Type" => "text/plain"
-        ];
-        $mock = \Mockery::mock(new MockCurl(200, "Response body", $responseHeaders))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withHeader("Some-key", "Some value")
+            ->withHeader("Content-Type", "text/plain")
+            ->withBody("some plain text")
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
         $response = $client->execute($req);
 
         $this->assertEquals("Some value", $response->headers["Some-key"]);
+        $this->assertEquals("text/plain", $response->headers["Content-Type"]);
+        $this->assertEquals("some plain text", $response->result);
     }
 
     public function testExecute_throwsForNon200LevelResponse()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $responseHeaders = [
-            "Debug-Id" => "Debug Data",
-            "Content-Type" => "text/plain"
-        ];
-        $mock = \Mockery::mock(new MockCurl(400, "Response body", $responseHeaders))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withHeader("Debug-Id", "some debug id")
+            ->withHeader("Content-Type", "text/plain")
+            ->withBody("Response body")
+            ->withStatus(400)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
         try {
@@ -171,19 +175,28 @@ class HttpClientTest extends TestCase
             $this->fail("expected execute to throw");
         } catch (HttpException $e) {
             $this->assertEquals(400, $e->statusCode);
-            $this->assertArraySubset(["Debug-Id" => "Debug Data"], $e->headers);
+            $this->assertArraySubset(["Debug-Id" => "some debug id"], $e->headers);
+            $this->assertArraySubset(["Content-Type" => "text/plain"], $e->headers);
             $this->assertEquals("Response body", $e->getMessage());
         }
     }
 
     public function testParseResponse_parsesResponseWith100ContinueCorrectly()
     {
-        $response = "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 200 OK\r\nDate: Wed, 13 Sep 2017 21:56:31 GMT\r\nServer: Apache/2.4.18 (Ubuntu)\r\nAccess-Control-Allow-Origin: *\r\nVary: Accept-Encoding\r\nContent-Length: 128\r\nContent-Type: text/html; charset=UTF-8\r\n\r\nSuccessfully dumped some data.\nAnother line of data\nLast one.";
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockRawCurl(200, $response))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(100)));
+
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withHeader("Content-Type", "text/plain")
+            ->withBody("Successfully dumped some data.\nAnother line of data\nLast one.")
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
+        $res = $client->execute($req);
         $res = $client->execute($req);
 
         $this->assertEquals("Successfully dumped some data.\nAnother line of data\nLast one.", $res->result);
@@ -191,12 +204,10 @@ class HttpClientTest extends TestCase
 
     public function testExecute_gzipsDataInRequestIfGzipHeaderSet()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $responseHeaders = [
-            "Content-Type" => "text/plain"
-        ];
-        $mock = \Mockery::mock(new MockCurl(200, NULL, $responseHeaders))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withHeader("Content-Type", "text/plain")
+            ->withStatus(200)));
 
         $req = new HttpRequest("/path", "POST");
         $req->headers["Content-Type"] = "text/plain";
@@ -204,18 +215,25 @@ class HttpClientTest extends TestCase
         $req->body = "some text to be encoded";
 
         $client->execute($req);
-        $mock->shouldHaveReceived('setOpt', [CURLOPT_POSTFIELDS, gzencode("some text to be encoded")])->once();
+
+        $reqPatternBuilder = WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
+            ->withRequestBody(WireMock::equalTo(gzencode("some text to be encoded")))
+            ->withHeader("Content-Type", WireMock::equalTo("text/plain"))
+            ->withHeader("Content-Encoding", WireMock::equalTo("gzip"));
+
+        $this->wireMock->verify($reqPatternBuilder);
     }
 
     public function testExecute_decompressesGzipDataInResponseIfGzipHeaderSet()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $responseHeaders = [
-            "Content-Type" => "text/plain",
-            "Content-Encoding" => "gzip"
-        ];
-        $mock = \Mockery::mock(new MockCurl(200, gzencode("some text to be encoded"), $responseHeaders))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::get(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withHeader("Content-Type", "text/plain")
+            ->withHeader("Content-Encoding", "gzip")
+            ->withBody(gzencode("some text to be encoded"))
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "GET");
 
@@ -225,54 +243,17 @@ class HttpClientTest extends TestCase
 
     public function testExecute_doesNotModifyOriginalRequest()
     {
-        $environment = new DevelopmentEnvironment("http://localhost");
-        $mock = \Mockery::mock(new MockCurl(200))->makePartial();
-        $client = new MockHttpClient($environment, $mock);
+        $this->wireMock->stubFor(WireMock::get(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
 
+        $client = new HttpClient($this->environment);
         $req = new HttpRequest("/path", "GET");
 
         $client->execute($req);
 
+        // HttpClient adds UserAgent header pre-flight
         $this->assertEquals(0, sizeof($req->headers));
-    }
-
-    private function serializeHeaders($headers)
-    {
-        $headerArray = [];
-        if ($headers) {
-            foreach ($headers as $key => $val) {
-                $headerArray[] = $key . ": " . $val;
-            }
-        }
-        return $headerArray;
-    }
-
-    private function deserializeHeaders($headers)
-    {
-        $separatedHeaders = [];
-        foreach ($headers as $header) {
-            if (!empty($header)) {
-                list($key, $val) = explode(":", $header);
-                $separatedHeaders[$key] = trim($val);
-            }
-        }
-        return $separatedHeaders;
-    }
-}
-
-class MockHttpClient extends HttpClient
-{
-    private $mockCurl;
-
-    function __construct($environment, MockCurl $curl = NULL) 
-    {
-        parent::__construct($environment);
-        $this->mockCurl = $curl;
-    }
-
-    public function execute(HttpRequest $request, CURL $curl = NULL)
-    {
-        return parent::execute($request, $this->mockCurl);
     }
 }
 
@@ -281,26 +262,6 @@ class BasicInjector implements Injector
     public function inject($httpRequest)
     {
         $httpRequest->path = "/some-other-path";
-    }
-}
-
-class WhiteSpaceRemovingSerializingClient extends MockHttpClient
-{
-    public function serializeRequest(HttpRequest $request)
-    {
-        $str = "";
-        foreach ($request->body as $body) {
-            $str .= str_replace(' ', '', $body);
-        }
-        return $str;
-    }
-}
-
-class FancyResponseDeserializingClient extends MockHttpClient
-{
-    public function deserializeResponse($responseBody, $headers)
-    {
-        return '{"myJSON": "isBetterThanYourJSON"}';
     }
 }
 
@@ -319,85 +280,5 @@ class DevelopmentEnvironment implements Environment
     public function baseUrl()
     {
         return $this->baseUrl;
-    }
-}
-
-class MockCurl extends Curl
-{
-    protected $statusCode;
-    protected $data;
-    protected $headers;
-    protected $errorCode = 0;
-    protected $error;
-    protected $reqHeaders;
-
-    public function __construct($statusCode, $data = null, $headers = [], $errorCode = 0, $error = null)
-    {
-        $this->statusCode = $statusCode;
-        $this->data = $data;
-        $this->headers = $headers;
-        $this->errorCode = $errorCode;
-        $this->error = $error;
-    }
-
-    public function setOpt($option, $value)
-    {
-        switch ($option) {
-            case CURLOPT_HTTPHEADER:
-                $this->reqHeaders = $value;
-        }
-        return $this;
-    }
-
-    public function close() {}
-
-    public function getInfo($option = null)
-    {
-        if ($option != null) {
-            return $this->statusCode;
-        }
-        return curl_getinfo($this->curl);
-    }
-
-    public function exec()
-    {
-        $response = "HTTP/1.1 " . $this->statusCode . " Status Message\r\n";
-        $serializedHeaders = [];
-        foreach ($this->headers as $key => $value) {
-            $serializedHeaders[] = $key . ":" . $value;
-        }
-        $response .= implode("\r\n", $serializedHeaders);
-        $response .= "\r\n\r\n";
-        if (!is_null($this->data)) {
-            $response .= $this->data;
-        }
-
-        return $response;
-    }
-
-    public function errNo()
-    {
-        return $this->errorCode;
-    }
-
-    public function error()
-    {
-        return $this->error;
-    }
-}
-
-class MockRawCurl extends MockCurl
-{
-    private $rawData;
-
-    public function __construct($statusCode, $rawData)
-    {
-        $this->statusCode = $statusCode;
-        $this->rawData = $rawData;
-    }
-
-    public function exec()
-    {
-        return $this->rawData;
     }
 }

@@ -22,7 +22,7 @@ class CurlSupported implements Serializer
      * Curl will automatically encode these types. In these cases, just the raw array
      * is returned.
      */
-    public function serialize(HttpRequest $request)
+    public function encode(HttpRequest $request)
     {
         if (!is_array($request->body) || !$this->isAssociative($request->body))
         {
@@ -37,7 +37,7 @@ class CurlSupported implements Serializer
      * @return mixed
      * @throws \Exception as multipart does not support deserialization.
      */
-    public function deserialize($body)
+    public function decode($body)
     {
         throw new \Exception("CurlSupported does not support deserialization");
     }

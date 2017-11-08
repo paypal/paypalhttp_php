@@ -19,7 +19,7 @@ class Json implements Serializer
         return "/^application\\/json/";
     }
 
-    public function serialize(HttpRequest $request)
+    public function encode(HttpRequest $request)
     {
         $body = $request->body;
         if (is_string($body)) {
@@ -31,7 +31,7 @@ class Json implements Serializer
         throw new \Exception("Cannot serialize data. Unknown type");
     }
 
-    public function deserialize($data)
+    public function decode($data)
     {
         return json_decode($data);
     }

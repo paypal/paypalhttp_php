@@ -25,7 +25,7 @@ class Encoder
         $this->serializers[] = new Form();
     }
 
-    public function encode(HttpRequest $request)
+    public function serializeRequest(HttpRequest $request)
     {
         if (!array_key_exists('Content-Type', $request->headers)) {
             throw new \Exception("HttpRequest does not have Content-Type header set");
@@ -43,7 +43,7 @@ class Encoder
             throw new \Exception(sprintf("Body must be either string or array"));
         }
 
-        $serialized = $serializer->serialize($request);
+        $serialized = $serializer->encode($request);
 
         if (array_key_exists("Content-Encoding", $request->headers) && $request->headers["Content-Encoding"] === "gzip") {
             $serialized = gzencode($serialized);
@@ -52,7 +52,7 @@ class Encoder
         return $serialized;
     }
 
-    public function decode($responseBody, $headers)
+    public function deserializeResponse($responseBody, $headers)
     {
         if (!array_key_exists('Content-Type', $headers)) {
             throw new \Exception("HTTP response does not have Content-Type header set");
@@ -70,7 +70,7 @@ class Encoder
             $responseBody = gzdecode($responseBody);
         }
 
-        return $serializer->deserialize($responseBody);
+        return $serializer->decode($responseBody);
     }
 
     private function serializer($contentType)

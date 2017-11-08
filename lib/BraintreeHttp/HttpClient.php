@@ -77,7 +77,7 @@ class HttpClient
         $curl->setOpt(CURLOPT_HEADER, 1);
 
         if (!is_null($requestCpy->body)) {
-            $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($requestCpy));
+            $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->serializeRequest($requestCpy));
         }
 
         if (strpos($this->environment->baseUrl(), "https://") === 0) {
@@ -156,7 +156,7 @@ class HttpClient
             $responseBody = NULL;
 
             if (!empty($body)) {
-                $responseBody = $this->encoder->decode($body, $headers);
+                $responseBody = $this->encoder->deserializeResponse($body, $headers);
             }
 
             return new HttpResponse(

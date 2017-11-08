@@ -14,7 +14,7 @@ class TextTest extends TestCase
         $httpRequest->body = "some string";
 
         $textSerializer = new Text();
-        $result = $textSerializer->serialize($httpRequest);
+        $result = $textSerializer->encode($httpRequest);
         $this->assertEquals("some string", $result);
     }
 
@@ -24,7 +24,7 @@ class TextTest extends TestCase
         $httpRequest->body = "{ \"key\": \"value\" }";
 
         $textSerializer = new Text();
-        $result = $textSerializer->serialize($httpRequest);
+        $result = $textSerializer->encode($httpRequest);
         $this->assertEquals("{ \"key\": \"value\" }", $result);
     }
 
@@ -35,7 +35,7 @@ class TextTest extends TestCase
         $httpRequest->body[] = "another string";
 
         $textSerializer = new Text();
-        $result = $textSerializer->serialize($httpRequest);
+        $result = $textSerializer->encode($httpRequest);
         $this->assertEquals("[\"some string\",\"another string\"]", $result);
     }
 
@@ -48,7 +48,7 @@ class TextTest extends TestCase
         ];
 
         $textSerializer = new Text();
-        $result = $textSerializer->serialize($httpRequest);
+        $result = $textSerializer->encode($httpRequest);
         $this->assertEquals("{\"key\":{\"another_key\":\"another value\",\"something\":\"else\"}}", $result);
     }
 
@@ -56,6 +56,6 @@ class TextTest extends TestCase
     {
         $data = "something \t really \n fishy.";
         $textSerializer = new Text();
-        $this->assertEquals($data, $textSerializer->deserialize($data));
+        $this->assertEquals($data, $textSerializer->decode($data));
     }
 }

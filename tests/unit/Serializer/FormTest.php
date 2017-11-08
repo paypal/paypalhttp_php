@@ -20,7 +20,7 @@ class FormTest extends TestCase
         $request->body = "";
         $request->headers["Content-Type"] = "application/x-www-form-urlencoded";
 
-        $multipart->serialize($request);
+        $multipart->encode($request);
     }
 
     /**
@@ -39,6 +39,6 @@ class FormTest extends TestCase
         $request->body = $body;
         $request->headers["Content-Type"] = "application/x-www-form-urlencoded";
 
-        $multipart->serialize($request);
+        $multipart->encode($request);
     }
 }

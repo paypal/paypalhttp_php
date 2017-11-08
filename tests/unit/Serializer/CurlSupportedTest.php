@@ -20,7 +20,7 @@ class CurlSupportedTest extends TestCase {
         $request->body = "";
         $request->headers["Content-Type"] = "multipart/form-data";
 
-        $multipart->serialize($request);
+        $multipart->encode($request);
     }
 
     /**
@@ -39,6 +39,6 @@ class CurlSupportedTest extends TestCase {
         $request->body = $body;
         $request->headers["Content-Type"] = "multipart/form-data";
 
-        $multipart->serialize($request);
+        $multipart->encode($request);
     }
 }

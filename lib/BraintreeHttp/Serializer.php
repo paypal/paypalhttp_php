@@ -19,11 +19,11 @@ interface Serializer
      * @param HttpRequest $request
      * @return string representation of your data after being serialized.
      */
-    public function serialize(HttpRequest $request);
+    public function encode(HttpRequest $request);
 
     /**
      * @param $body
      * @return mixed object/string representing the de-serialized response body.
      */
-    public function deserialize($body);
+    public function decode($body);
 }

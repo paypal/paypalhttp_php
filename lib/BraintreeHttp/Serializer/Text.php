@@ -19,7 +19,7 @@ class Text implements Serializer
         return "/^text\\/.*/";
     }
 
-    public function serialize(HttpRequest $request)
+    public function encode(HttpRequest $request)
     {
         $body = $request->body;
         if (is_string($body)) {
@@ -31,7 +31,7 @@ class Text implements Serializer
         return implode(" ", $body);
     }
 
-    public function deserialize($data)
+    public function decode($data)
     {
         return $data;
     }

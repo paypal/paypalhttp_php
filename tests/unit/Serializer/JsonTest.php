@@ -15,7 +15,7 @@ class JsonTest extends TestCase
         $httpRequest->body = "some string";
 
         $serializer = new Json();
-        $result = $serializer->serialize($httpRequest);
+        $result = $serializer->encode($httpRequest);
         $this->assertEquals("some string", $result);
     }
 
@@ -25,7 +25,7 @@ class JsonTest extends TestCase
         $httpRequest->body = "{ \"key\": \"value\" }";
 
         $serializer = new Json();
-        $result = $serializer->serialize($httpRequest);
+        $result = $serializer->encode($httpRequest);
         $this->assertEquals("{ \"key\": \"value\" }", $result);
     }
 
@@ -36,7 +36,7 @@ class JsonTest extends TestCase
         $httpRequest->body[] = "another string";
 
         $serializer = new Json();
-        $result = $serializer->serialize($httpRequest);
+        $result = $serializer->encode($httpRequest);
         $this->assertEquals("[\"some string\",\"another string\"]", $result);
     }
 
@@ -49,7 +49,7 @@ class JsonTest extends TestCase
         ];
 
         $serializer = new Json();
-        $result = $serializer->serialize($httpRequest);
+        $result = $serializer->encode($httpRequest);
         $this->assertEquals("{\"key\":{\"another_key\":\"another value\",\"something\":\"else\"}}", $result);
     }
 }

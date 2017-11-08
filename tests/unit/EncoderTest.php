@@ -19,7 +19,7 @@ class EncoderTest extends TestCase
         $httpRequest = new HttpRequest("/path", "post");
         $httpRequest->body = "some string";
 
-        $encoder->encode($httpRequest);
+        $encoder->serializeRequest($httpRequest);
     }
 
     /**
@@ -33,7 +33,7 @@ class EncoderTest extends TestCase
         $httpRequest->headers['Content-Type'] = "non-existent/type";
         $httpRequest->body = "some string";
 
-        $encoder->encode($httpRequest);
+        $encoder->serializeRequest($httpRequest);
     }
 
     /**
@@ -48,7 +48,7 @@ class EncoderTest extends TestCase
         $httpRequest->headers['Content-Type'] = "application/json";
         $httpRequest->body = new \stdClass();
 
-        $encoder->encode($httpRequest);
+        $encoder->serializeRequest($httpRequest);
     }
 
     public function testEncode_serializesWithCorrectSerializer()
@@ -64,7 +64,7 @@ class EncoderTest extends TestCase
             ]
         ];
 
-        $result = $encoder->encode($httpRequest);
+        $result = $encoder->serializeRequest($httpRequest);
 
         $this->assertEquals('{"key_one":"value_one","key_two":["one","two"]}', $result);
     }
@@ -80,7 +80,7 @@ class EncoderTest extends TestCase
             "key" => "val"
         ];
 
-        $encoded = $encoder->encode($httpRequest);
+        $encoded = $encoder->serializeRequest($httpRequest);
 
         $this->assertEquals(gzencode(json_encode($httpRequest->body)), $encoded);
     }
@@ -94,7 +94,7 @@ class EncoderTest extends TestCase
         $encoder = new Encoder();
         $headers = [];
 
-        $encoder->decode('data', $headers);
+        $encoder->deserializeResponse('data', $headers);
     }
 
     /**
@@ -108,7 +108,7 @@ class EncoderTest extends TestCase
             "Content-Type" => "application/unstructured"
         ];
 
-        $encoder->decode('data', $headers);
+        $encoder->deserializeResponse('data', $headers);
     }
 
     public function testDecode_deserializesResponseWithCorrectSerializer()
@@ -119,7 +119,7 @@ class EncoderTest extends TestCase
             "Content-Type" => "application/json"
         ];
 
-        $result = $encoder->decode($responseBody, $headers);
+        $result = $encoder->deserializeResponse($responseBody, $headers);
 
         $this->assertEquals("value_one", $result->key_one);
         $this->assertEquals(["one", "two"], $result->key_two);
@@ -133,7 +133,7 @@ class EncoderTest extends TestCase
             "Content-Type" => "application/json; charset=utf-8"
         ];
 
-        $result = $encoder->decode($responseBody, $headers);
+        $result = $encoder->deserializeResponse($responseBody, $headers);
 
         $this->assertEquals("value_one", $result->key_one);
         $this->assertEquals(["one", "two"], $result->key_two);
@@ -148,7 +148,7 @@ class EncoderTest extends TestCase
             "Content-Encoding" => "gzip"
         ];
 
-        $decoded = $encoder->decode(gzencode($responseBody), $headers);
+        $decoded = $encoder->deserializeResponse(gzencode($responseBody), $headers);
         $expected = new \stdClass();
 
         $expected->key_one = "value_one";

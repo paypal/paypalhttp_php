@@ -30,16 +30,26 @@ class Encoder
         if (!array_key_exists('Content-Type', $request->headers)) {
             throw new \Exception("HttpRequest does not have Content-Type header set");
         }
+
         $contentType = $request->headers['Content-Type'];
         /** @var Serializer $serializer */
         $serializer = $this->serializer($contentType);
+
         if (is_null($serializer)) {
             throw new \Exception(sprintf("Unable to serialize request with Content-Type: %s. Supported encodings are: %s", $contentType, implode(", ", $this->supportedEncodings())));
         }
-        if (is_string($request->body) || is_array($request->body)) {
-            return $serializer->serialize($request);
+
+        if (!(is_string($request->body) || is_array($request->body))) {
+            throw new \Exception(sprintf("Body must be either string or array"));
         }
-        throw new \Exception(sprintf("Body must be either string or array"));
+
+        $serialized = $serializer->serialize($request);
+
+        if (array_key_exists("Content-Encoding", $request->headers) && $request->headers["Content-Encoding"] === "gzip") {
+            $serialized = gzencode($serialized);
+        }
+
+        return $serialized;
     }
 
     public function decode($responseBody, $headers)
@@ -51,8 +61,13 @@ class Encoder
         $contentType = $headers['Content-Type'];
         /** @var Serializer $serializer */
         $serializer = $this->serializer($contentType);
+
         if (is_null($serializer)) {
             throw new \Exception(sprintf("Unable to deserialize response with Content-Type: %s. Supported encodings are: %s", $contentType, implode(", ", $this->supportedEncodings())));
+        }
+
+        if (array_key_exists("Content-Encoding", $headers) && $headers["Content-Encoding"] === "gzip") {
+            $responseBody = gzdecode($responseBody);
         }
 
         return $serializer->deserialize($responseBody);

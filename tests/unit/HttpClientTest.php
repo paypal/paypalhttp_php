@@ -196,49 +196,10 @@ class HttpClientTest extends TestCase
         $client = new HttpClient($this->environment);
 
         $req = new HttpRequest("/path", "POST");
-        $res = $client->execute($req);
+        $client->execute($req);
         $res = $client->execute($req);
 
         $this->assertEquals("Successfully dumped some data.\nAnother line of data\nLast one.", $res->result);
-    }
-
-    public function testExecute_gzipsDataInRequestIfGzipHeaderSet()
-    {
-        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
-            ->willReturn(WireMock::aResponse()
-            ->withHeader("Content-Type", "text/plain")
-            ->withStatus(200)));
-
-        $req = new HttpRequest("/path", "POST");
-        $req->headers["Content-Type"] = "text/plain";
-        $req->headers["Content-Encoding"] = "gzip";
-        $req->body = "some text to be encoded";
-
-        $client->execute($req);
-
-        $reqPatternBuilder = WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
-            ->withRequestBody(WireMock::equalTo(gzencode("some text to be encoded")))
-            ->withHeader("Content-Type", WireMock::equalTo("text/plain"))
-            ->withHeader("Content-Encoding", WireMock::equalTo("gzip"));
-
-        $this->wireMock->verify($reqPatternBuilder);
-    }
-
-    public function testExecute_decompressesGzipDataInResponseIfGzipHeaderSet()
-    {
-        $this->wireMock->stubFor(WireMock::get(WireMock::urlEqualTo("/path"))
-            ->willReturn(WireMock::aResponse()
-            ->withHeader("Content-Type", "text/plain")
-            ->withHeader("Content-Encoding", "gzip")
-            ->withBody(gzencode("some text to be encoded"))
-            ->withStatus(200)));
-
-        $client = new HttpClient($this->environment);
-
-        $req = new HttpRequest("/path", "GET");
-
-        $resp = $client->execute($req);
-        $this->assertEquals("some text to be encoded", $resp->result);
     }
 
     public function testExecute_doesNotModifyOriginalRequest()

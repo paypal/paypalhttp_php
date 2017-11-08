@@ -77,11 +77,7 @@ class HttpClient
         $curl->setOpt(CURLOPT_HEADER, 1);
 
         if (!is_null($requestCpy->body)) {
-            if (array_key_exists("Content-Encoding", $requestCpy->headers) && $requestCpy->headers["Content-Encoding"] === "gzip") {
-                $curl->setOpt(CURLOPT_POSTFIELDS, gzencode($this->encoder->encode($requestCpy)));
-            } else {
-                $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($requestCpy));
-            }
+            $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->encode($requestCpy));
         }
 
         if (strpos($this->environment->baseUrl(), "https://") === 0) {
@@ -158,9 +154,11 @@ class HttpClient
 
         if ($statusCode >= 200 && $statusCode < 300) {
             $responseBody = NULL;
+
             if (!empty($body)) {
                 $responseBody = $this->encoder->decode($body, $headers);
             }
+
             return new HttpResponse(
                 $errorCode === 0 ? $statusCode : $errorCode,
                 $responseBody,

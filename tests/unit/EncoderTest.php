@@ -44,6 +44,7 @@ class EncoderTest extends TestCase
     {
         $encoder = new Encoder();
         $httpRequest = new HttpRequest("/path", "post");
+
         $httpRequest->headers['Content-Type'] = "application/json";
         $httpRequest->body = new \stdClass();
 
@@ -66,6 +67,22 @@ class EncoderTest extends TestCase
         $result = $encoder->encode($httpRequest);
 
         $this->assertEquals('{"key_one":"value_one","key_two":["one","two"]}', $result);
+    }
+
+    public function testEncode_gzipsDataWhenHeaderPresent()
+    {
+        $encoder = new Encoder();
+        $httpRequest = new HttpRequest("/path", "post");
+
+        $httpRequest->headers["Content-Type"] = "application/json";
+        $httpRequest->headers["Content-Encoding"] = "gzip";
+        $httpRequest->body = [
+            "key" => "val"
+        ];
+
+        $encoded = $encoder->encode($httpRequest);
+
+        $this->assertEquals(gzencode(json_encode($httpRequest->body)), $encoded);
     }
 
     /**
@@ -120,5 +137,22 @@ class EncoderTest extends TestCase
 
         $this->assertEquals("value_one", $result->key_one);
         $this->assertEquals(["one", "two"], $result->key_two);
+    }
+
+    public function testDecode_ungzipsDataWhenHeaderPresent()
+    {
+        $encoder = new Encoder();
+        $responseBody = '{"key_one":"value_one"}';
+        $headers = [
+            "Content-Type" => "application/json; charset=utf-8",
+            "Content-Encoding" => "gzip"
+        ];
+
+        $decoded = $encoder->decode(gzencode($responseBody), $headers);
+        $expected = new \stdClass();
+
+        $expected->key_one = "value_one";
+
+        $this->assertEquals($expected, $decoded);
     }
 }

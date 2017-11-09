@@ -9,7 +9,7 @@ In it's simplest form, an [`HttpClient`](./lib/BraintreeHttp/HttpClient.php) exp
 An [`Environment`](./lib/braintreehttp/environment.rb) describes a domain that hosts a REST API, against which an `HttpClient` will make requests. `Environment` is a simple interface that wraps one method, `baseUrl`.
 
 ```php
-env = new Environment('https://example.com')
+$env = new Environment('https://example.com');
 ```
 
 ### Requests

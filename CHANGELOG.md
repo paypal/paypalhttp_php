@@ -1,3 +1,8 @@
+## 0.2.3
+- Ensure immutability of requests passed to HttpClient#execute
+- Use wiremock for our tests
+- Refactor response parsing
+
 ## 0.2.2
 - Add gzip compression/decompression.
 

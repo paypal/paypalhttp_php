@@ -1,3 +1,6 @@
+## 0.2.4
+- Use CURLOPT_HEADERFUNCTION for parsing response headers.
+
 ## 0.2.3
 - Ensure immutability of requests passed to HttpClient#execute
 - Use wiremock for our tests

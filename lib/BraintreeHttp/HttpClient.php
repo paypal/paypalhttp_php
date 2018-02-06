@@ -74,7 +74,7 @@ class HttpClient
         $curl->setOpt(CURLOPT_CUSTOMREQUEST, $requestCpy->verb);
         $curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($requestCpy->headers));
         $curl->setOpt(CURLOPT_RETURNTRANSFER, 1);
-        $curl->setOpt(CURLOPT_HEADER, 1);
+        $curl->setOpt(CURLOPT_HEADER, 0);
 
         if (!is_null($requestCpy->body)) {
             $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->serializeRequest($requestCpy));
@@ -138,6 +138,21 @@ class HttpClient
 
     private function parseResponse($curl)
     {
+        $headers = [];
+        $curl->setOpt(CURLOPT_HEADERFUNCTION,
+            function($curl, $header) use (&$headers)
+            {
+                $len = strlen($header);
+
+                $k = "";
+                $v = "";
+
+                $this->deserializeHeader($header, $k, $v);
+                $headers[$k] = $v;
+
+                return $len;
+            });
+
         $responseData = $curl->exec();
         $statusCode = $curl->getInfo(CURLINFO_HTTP_CODE);
         $errorCode = $curl->errNo();
@@ -147,10 +162,7 @@ class HttpClient
             throw new IOException($error, $errorCode);
         }
 
-        $headers = [];
-        $body = "";
-
-        $this->parseHttp($responseData, $headers, $body);
+        $body = $responseData;
 
         if ($statusCode >= 200 && $statusCode < 300) {
             $responseBody = NULL;
@@ -166,45 +178,6 @@ class HttpClient
             );
         } else {
             throw new HttpException($body, $statusCode, $headers);
-        }
-    }
-
-    private function parseHttp($data, &$headers, &$body)
-    {
-        $offset = 0;
-        $crlf = "\r\n";
-        $section = 0;
-
-        while (true) {
-            $endl = strpos($data, $crlf, $offset);
-
-            if ($endl === false) {
-                $endl = strlen($data);
-            }
-
-            $line = substr($data, $offset, $endl - $offset);
-            $offset = $endl + 2;
-
-            switch ($section) {
-                case 0:
-                    $section++;
-                    break;
-                case 1:
-                    if ($line === "") {
-                        $section++;
-                        break;
-                    }
-
-                    $k = "";
-                    $v = "";
-
-                    $this->deserializeHeader($line, $k, $v);
-                    $headers[$k] = $v;
-                    break;
-                case 2:
-                    $body = $line;
-                    return;
-            }
         }
     }
 

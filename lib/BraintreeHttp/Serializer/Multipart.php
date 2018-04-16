@@ -16,6 +16,7 @@ use BraintreeHttp\Serializer\FormPart;
  */
 class Multipart implements Serializer
 {
+    const LINEFEED = "\r\n";
 
     public function contentType()
     {
@@ -55,14 +56,14 @@ class Multipart implements Serializer
 
         // add boundary for each parameters
         array_walk($body, function (&$part) use ($boundary) {
-            $part = "--{$boundary}\r\n{$part}";
+            $part = "--{$boundary}" . self::LINEFEED . "{$part}";
         });
 
         // add final boundary
         $body[] = "--{$boundary}--";
         $body[] = "";
 
-        return implode("\r\n", $body);
+        return implode(self::LINEFEED, $body);
     }
 
     public function decode($data)
@@ -77,7 +78,7 @@ class Multipart implements Serializer
 
     private function prepareFormField($partName, $value, $boundary)
     {
-        return implode("\r\n", [
+        return implode(self::LINEFEED, [
             "Content-Disposition: form-data; name=\"{$partName}\"",
             "",
             filter_var($value),
@@ -95,7 +96,7 @@ class Multipart implements Serializer
         $filePath = end($splitFilePath);
         $disallow = ["\0", "\"", "\r", "\n"];
         $filePath = str_replace($disallow, "_", $filePath);
-        return implode("\r\n", [
+        return implode(self::LINEFEED, [
             "Content-Disposition: form-data; name=\"{$partName}\"; filename=\"{$filePath}\"",
             "Content-Type: {$mimeType}",
             "",
@@ -128,6 +129,6 @@ class Multipart implements Serializer
 
         $body = array_merge([$contentDisposition], $finalPartHeaders, [""], [$partValue]);
 
-        return implode("\r\n", $body);
+        return implode(self::LINEFEED, $body);
     }
 }

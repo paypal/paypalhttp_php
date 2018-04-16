@@ -7,7 +7,8 @@ use BraintreeHttp\Serializer\Multipart;
 use BraintreeHttp\Serializer\FormPart;
 use PHPUnit\Framework\TestCase;
 
-class MultipartTest extends TestCase {
+class MultipartTest extends TestCase
+{
 
     /**
      * @expectedException \Exception

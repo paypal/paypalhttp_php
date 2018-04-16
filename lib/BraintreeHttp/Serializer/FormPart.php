@@ -2,20 +2,24 @@
 
 namespace BraintreeHttp\Serializer;
 
-class FormPart {
+class FormPart
+{
     private $value;
     private $headers;
 
-    public function __construct($value, $headers) {
+    public function __construct($value, $headers)
+    {
         $this->value = $value;
         $this->headers = array_merge([], $headers);
     }
 
-    public function getValue() {
+    public function getValue()
+    {
         return $this->value;
     }
 
-    public function getHeaders() {
+    public function getHeaders()
+    {
         return $this->headers;
     }
 }

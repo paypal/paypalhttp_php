@@ -70,11 +70,13 @@ class Multipart implements Serializer
         throw new \Exception("Multipart does not support deserialization");
     }
 
-    private function isAssociative(array $array) {
+    private function isAssociative(array $array)
+    {
         return array_values($array) !== $array;
     }
 
-    private function prepareFormField($partName, $value, $boundary) {
+    private function prepareFormField($partName, $value, $boundary)
+    {
         return implode("\r\n", [
             "Content-Disposition: form-data; name=\"{$partName}\"",
             "",
@@ -82,8 +84,8 @@ class Multipart implements Serializer
         ]);
     }
 
-    private function prepareFilePart($partName, $file, $boundary) {
-        // $file = fopen(dirname(__DIR__), '/file/path.png', 'rb')
+    private function prepareFilePart($partName, $file, $boundary)
+    {
         $fileInfo = new finfo(FILEINFO_MIME_TYPE);
         $filePath = stream_get_meta_data($file)['uri'];
         $data = file_get_contents($filePath);
@@ -101,7 +103,8 @@ class Multipart implements Serializer
         ]);
     }
 
-    private function prepareFormPart($partName, $formPart, $boundary) {
+    private function prepareFormPart($partName, $formPart, $boundary)
+    {
         $contentDisposition = "Content-Disposition: form-data; name=\"{$partName}\"";
 
         $partHeaders = $formPart->getHeaders();

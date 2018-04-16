@@ -39,7 +39,8 @@ class Form implements Serializer
         throw new \Exception("CurlSupported does not support deserialization");
     }
 
-    private function isAssociative(array $array) {
+    private function isAssociative(array $array)
+    {
         return array_values($array) !== $array;
     }
 }

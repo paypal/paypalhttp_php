@@ -1,3 +1,6 @@
+## 0.3.0
+- Add support for multipart/form-data with JSON parts
+
 ## 0.2.4
 - Use CURLOPT_HEADERFUNCTION for parsing response headers.
 

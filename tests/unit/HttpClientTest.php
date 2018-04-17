@@ -216,6 +216,31 @@ class HttpClientTest extends TestCase
         // HttpClient adds UserAgent header pre-flight
         $this->assertEquals(0, sizeof($req->headers));
     }
+
+    public function testExecute_usesUpdatedHTTPHeadersFromSerializer()
+    {
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
+
+        $req = new HttpRequest("/path", "POST");
+        // The "; boundary=--..." will be added by the Multipart serializer when serializing
+        // the body
+        $req->headers["Content-Type"] = "multipart/form-data";
+        $file = fopen(dirname(__DIR__) . '/unit/Serializer/sample.txt', 'rb');
+        $body = [];
+        $body["file1"] = $file;
+        $body["key"] = "value";
+        $req->body = $body;
+
+        $client->execute($req);
+
+        $this->wireMock->verify(WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
+            ->withHeader("Content-Type", WireMock::containing("multipart/form-data; boundary=--"))
+            ->withRequestBody(WireMock::containing("Hello World!")));
+    }
 }
 
 class BasicInjector implements Injector

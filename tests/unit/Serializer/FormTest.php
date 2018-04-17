@@ -3,7 +3,7 @@
 namespace Test\Unit;
 
 use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer\CurlSupported;
+use BraintreeHttp\Serializer\Form;
 use PHPUnit\Framework\TestCase;
 
 class FormTest extends TestCase
@@ -14,7 +14,7 @@ class FormTest extends TestCase
      */
     public function testFormThrowsWhenRequestBodyNotArray()
     {
-        $multipart = new CurlSupported();
+        $multipart = new Form();
 
         $request = new HttpRequest("/", "POST");
         $request->body = "";
@@ -29,7 +29,7 @@ class FormTest extends TestCase
      */
     public function testFormThrowsWhenRequestBodyNotAssociativeArray()
     {
-        $multipart = new CurlSupported();
+        $multipart = new Form();
 
         $body = [];
         $body[] = "form-param 1";

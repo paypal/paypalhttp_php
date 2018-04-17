@@ -70,16 +70,20 @@ class HttpClient
 
         $url = $this->environment->baseUrl() . $requestCpy->path;
 
+        $body = "";
+        if (!is_null($requestCpy->body)) {
+            $body = $this->encoder->serializeRequest($requestCpy);
+        }
+
         $curl->setOpt(CURLOPT_URL, $url);
         $curl->setOpt(CURLOPT_CUSTOMREQUEST, $requestCpy->verb);
+        $curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($requestCpy->headers));
         $curl->setOpt(CURLOPT_RETURNTRANSFER, 1);
         $curl->setOpt(CURLOPT_HEADER, 0);
 
         if (!is_null($requestCpy->body)) {
-            $curl->setOpt(CURLOPT_POSTFIELDS, $this->encoder->serializeRequest($requestCpy));
+            $curl->setOpt(CURLOPT_POSTFIELDS, $body);
         }
-
-        $curl->setOpt(CURLOPT_HTTPHEADER, $this->serializeHeaders($requestCpy->headers));
 
         if (strpos($this->environment->baseUrl(), "https://") === 0) {
             $curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);

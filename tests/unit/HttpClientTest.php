@@ -2,12 +2,12 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\Curl;
-use BraintreeHttp\Environment;
-use BraintreeHttp\HttpClient;
-use BraintreeHttp\HttpException;
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Injector;
+use PayPalHttp\Curl;
+use PayPalHttp\Environment;
+use PayPalHttp\HttpClient;
+use PayPalHttp\HttpException;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Injector;
 use PHPUnit\Framework\TestCase;
 use WireMock\Client\WireMock;
 

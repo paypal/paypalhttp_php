@@ -14,8 +14,3 @@ before_script:
 - composer install --dev
 script:
 - vendor/bin/phpunit
-notifications:
-  email:
-    recipients:
-    - external-ci-notifications+braintreehttp@getbraintree.com
-    on_success: change

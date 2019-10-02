@@ -2,9 +2,9 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\Encoder;
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer;
+use PayPalHttp\Encoder;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializer;
 use PHPUnit\Framework\TestCase;
 
 class EncoderTest extends TestCase
@@ -30,7 +30,7 @@ class EncoderTest extends TestCase
     {
         $encoder = new Encoder();
         $httpRequest = new HttpRequest("/path", "post");
-        $httpRequest->headers['Content-Type'] = "non-existent/type";
+        $httpRequest->headers['content-type'] = "non-existent/type";
         $httpRequest->body = "some string";
 
         $encoder->serializeRequest($httpRequest);
@@ -45,7 +45,7 @@ class EncoderTest extends TestCase
         $encoder = new Encoder();
         $httpRequest = new HttpRequest("/path", "post");
 
-        $httpRequest->headers['Content-Type'] = "application/json";
+        $httpRequest->headers['content-type'] = "application/json";
         $httpRequest->body = new \stdClass();
 
         $encoder->serializeRequest($httpRequest);
@@ -55,7 +55,7 @@ class EncoderTest extends TestCase
     {
         $encoder = new Encoder();
         $httpRequest = new HttpRequest("/path", "post");
-        $httpRequest->headers['Content-Type'] = "application/json";
+        $httpRequest->headers['content-type'] = "application/json";
         $httpRequest->body = [
             "key_one" => "value_one",
             "key_two" => [
@@ -74,8 +74,8 @@ class EncoderTest extends TestCase
         $encoder = new Encoder();
         $httpRequest = new HttpRequest("/path", "post");
 
-        $httpRequest->headers["Content-Type"] = "application/json";
-        $httpRequest->headers["Content-Encoding"] = "gzip";
+        $httpRequest->headers["content-type"] = "application/json";
+        $httpRequest->headers["content-encoding"] = "gzip";
         $httpRequest->body = [
             "key" => "val"
         ];
@@ -105,7 +105,7 @@ class EncoderTest extends TestCase
     {
         $encoder = new Encoder();
         $headers = [
-            "Content-Type" => "application/unstructured"
+            "content-type" => "application/unstructured"
         ];
 
         $encoder->deserializeResponse('data', $headers);
@@ -116,7 +116,7 @@ class EncoderTest extends TestCase
         $encoder = new Encoder();
         $responseBody = '{"key_one":"value_one","key_two":["one","two"]}';
         $headers = [
-            "Content-Type" => "application/json"
+            "content-type" => "application/json"
         ];
 
         $result = $encoder->deserializeResponse($responseBody, $headers);
@@ -130,7 +130,7 @@ class EncoderTest extends TestCase
         $encoder = new Encoder();
         $responseBody = '{"key_one":"value_one","key_two":["one","two"]}';
         $headers = [
-            "Content-Type" => "application/json; charset=utf-8"
+            "content-type" => "application/json; charset=utf-8"
         ];
 
         $result = $encoder->deserializeResponse($responseBody, $headers);
@@ -144,8 +144,8 @@ class EncoderTest extends TestCase
         $encoder = new Encoder();
         $responseBody = '{"key_one":"value_one"}';
         $headers = [
-            "Content-Type" => "application/json; charset=utf-8",
-            "Content-Encoding" => "gzip"
+            "content-type" => "application/json; charset=utf-8",
+            "content-encoding" => "gzip"
         ];
 
         $decoded = $encoder->deserializeResponse(gzencode($responseBody), $headers);

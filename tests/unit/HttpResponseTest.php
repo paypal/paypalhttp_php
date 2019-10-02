@@ -2,7 +2,7 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\HttpResponse;
+use PayPalHttp\HttpResponse;
 use PHPUnit\Framework\TestCase;
 
 class HttpResponseTest extends TestCase

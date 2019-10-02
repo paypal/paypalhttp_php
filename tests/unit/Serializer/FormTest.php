@@ -2,8 +2,8 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer\Form;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializer\Form;
 use PHPUnit\Framework\TestCase;
 
 class FormTest extends TestCase
@@ -18,7 +18,7 @@ class FormTest extends TestCase
 
         $request = new HttpRequest("/", "POST");
         $request->body = "";
-        $request->headers["Content-Type"] = "application/x-www-form-urlencoded";
+        $request->headers["content-type"] = "application/x-www-form-urlencoded";
 
         $multipart->encode($request);
     }

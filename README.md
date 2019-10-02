@@ -1,8 +1,8 @@
 ## Braintree HttpClient [![Build Status](https://travis-ci.org/braintree/braintreehttp_php.svg?branch=master)](https://travis-ci.org/braintree/braintreehttp_php)
 
-BraintreeHttp is a generic HTTP Client.
+PayPalHttp is a generic HTTP Client.
 
-In it's simplest form, an [`HttpClient`](./lib/BraintreeHttp/HttpClient.php) exposes an `execute` method which takes an [HTTP request](./lib/BraintreeHttp/HttpRequest.php), executes it against the domain described in an [Environment](./lib/BraintreeHttp/Environment.php), and returns an [HTTP response](./lib/BraintreeHttp/HttpResponse.php).
+In it's simplest form, an [`HttpClient`](lib/PayPalHttp/HttpClient.php) exposes an `execute` method which takes an [HTTP request](lib/PayPalHttp/HttpRequest.php), executes it against the domain described in an [Environment](lib/PayPalHttp/Environment.php), and returns an [HTTP response](lib/PayPalHttp/HttpResponse.php).
 
 ### Environment
 
@@ -54,7 +54,7 @@ $client->addInjector($logInjector);
 
 ### Error Handling
 
-`HttpClient#execute` may throw an `Exception` if something went wrong during the course of execution. If the server returned a non-200 response, [IOException](./lib/BraintreeHttp/IOException.php) will be thrown, that will contain a status code and headers you can use for debugging.
+`HttpClient#execute` may throw an `Exception` if something went wrong during the course of execution. If the server returned a non-200 response, [IOException](lib/PayPalHttp/IOException.php) will be thrown, that will contain a status code and headers you can use for debugging.
 
 ```php
 try
@@ -70,7 +70,7 @@ catch (HttpException $e)
 ```
 
 ## License
-BraintreeHttp-PHP is open source and available under the MIT license. See the [LICENSE](./LICENSE) file for more information.
+PayPalHttp-PHP is open source and available under the MIT license. See the [LICENSE](./LICENSE) file for more information.
 
 ## Contributing
 Pull requests and issues are welcome. Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for more details.

@@ -1,16 +1,16 @@
 <?php
 
-namespace BraintreeHttp\Serializer;
+namespace PayPalHttp\Serializer;
 
 use finfo;
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer;
-use BraintreeHttp\Encoder;
-use BraintreeHttp\Serializer\FormPart;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializer;
+use PayPalHttp\Encoder;
+use PayPalHttp\Serializer\FormPart;
 
 /**
  * Class Multipart
- * @package BraintreeHttp\Serializer
+ * @package PayPalHttp\Serializer
  *
  * Serializer for multipart.
  */

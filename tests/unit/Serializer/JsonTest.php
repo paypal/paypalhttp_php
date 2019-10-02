@@ -2,9 +2,9 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializable;
-use BraintreeHttp\Serializer\Json;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializable;
+use PayPalHttp\Serializer\Json;
 use PHPUnit\Framework\TestCase;
 
 class JsonTest extends TestCase

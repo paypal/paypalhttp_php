@@ -2,12 +2,12 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\Curl;
-use BraintreeHttp\Environment;
-use BraintreeHttp\HttpClient;
-use BraintreeHttp\HttpException;
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Injector;
+use PayPalHttp\Curl;
+use PayPalHttp\Environment;
+use PayPalHttp\HttpClient;
+use PayPalHttp\HttpException;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Injector;
 use PHPUnit\Framework\TestCase;
 use WireMock\Client\WireMock;
 
@@ -153,8 +153,8 @@ class HttpClientTest extends TestCase
         $req = new HttpRequest("/path", "POST");
         $response = $client->execute($req);
 
-        $this->assertEquals("Some value", $response->headers["Some-key"]);
-        $this->assertEquals("text/plain", $response->headers["Content-Type"]);
+        $this->assertEquals("Some value", $response->headers["some-key"]);
+        $this->assertEquals("text/plain", $response->headers["content-type"]);
         $this->assertEquals("some plain text", $response->result);
     }
 
@@ -175,8 +175,8 @@ class HttpClientTest extends TestCase
             $this->fail("expected execute to throw");
         } catch (HttpException $e) {
             $this->assertEquals(400, $e->statusCode);
-            $this->assertArraySubset(["Debug-Id" => "some debug id"], $e->headers);
-            $this->assertArraySubset(["Content-Type" => "text/plain"], $e->headers);
+            $this->assertArraySubset(["debug-id" => "some debug id"], $e->headers);
+            $this->assertArraySubset(["content-type" => "text/plain"], $e->headers);
             $this->assertEquals("Response body", $e->getMessage());
         }
     }

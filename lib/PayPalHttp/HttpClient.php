@@ -1,10 +1,10 @@
 <?php
 
-namespace BraintreeHttp;
+namespace PayPalHttp;
 
 /**
  * Class HttpClient
- * @package BraintreeHttp
+ * @package PayPalHttp
  *
  * Client used to make HTTP requests.
  */
@@ -64,8 +64,8 @@ class HttpClient
             $inj->inject($requestCpy);
         }
 
-        if (!array_key_exists("User-Agent", $requestCpy->headers)) {
-            $requestCpy->headers["User-Agent"] = $this->userAgent();
+        if (!array_key_exists("user-agent", $requestCpy->headers)) {
+            $requestCpy->headers["user-agent"] = $this->userAgent();
         }
 
         $url = $this->environment->baseUrl() . $requestCpy->path;
@@ -107,7 +107,7 @@ class HttpClient
      */
     public function userAgent()
     {
-        return "BraintreeHttp-PHP HTTP/1.1";
+        return "PayPalHttp-PHP HTTP/1.1";
     }
 
     /**
@@ -134,7 +134,7 @@ class HttpClient
         $headerArray = [];
         if ($headers) {
             foreach ($headers as $key => $val) {
-                $headerArray[] = $key . ": " . $val;
+                $headerArray[] =  strtolower($key ). ": " . $val;
             }
         }
 
@@ -194,7 +194,7 @@ class HttpClient
             }
 
             list($k, $v) = explode(":", $header);
-            $key = trim($k);
+            $key = strtolower(trim($k));
             $value = trim($v);
         }
     }

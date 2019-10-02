@@ -1,15 +1,15 @@
 <?php
 
-namespace BraintreeHttp;
+namespace PayPalHttp;
 
-use BraintreeHttp\Serializer\Form;
-use BraintreeHttp\Serializer\Json;
-use BraintreeHttp\Serializer\Multipart;
-use BraintreeHttp\Serializer\Text;
+use PayPalHttp\Serializer\Form;
+use PayPalHttp\Serializer\Json;
+use PayPalHttp\Serializer\Multipart;
+use PayPalHttp\Serializer\Text;
 
 /**
  * Class Encoder
- * @package BraintreeHttp
+ * @package PayPalHttp
  *
  * Encoding class for serializing and deserializing request/response.
  */
@@ -25,13 +25,21 @@ class Encoder
         $this->serializers[] = new Form();
     }
 
+
+    /*
+     * Supporting case insensitivity in headers */
+    public function  prepareHeaders(array $headers){
+        return array_change_key_case($headers);
+    }
+
     public function serializeRequest(HttpRequest $request)
     {
-        if (!array_key_exists('Content-Type', $request->headers)) {
+        $formattedHeaders = $this->prepareHeaders($request->headers);
+        if (!array_key_exists('content-type', $formattedHeaders)) {
             throw new \Exception("HttpRequest does not have Content-Type header set");
         }
 
-        $contentType = $request->headers['Content-Type'];
+        $contentType = $formattedHeaders['content-type'];
         /** @var Serializer $serializer */
         $serializer = $this->serializer($contentType);
 
@@ -45,20 +53,22 @@ class Encoder
 
         $serialized = $serializer->encode($request);
 
-        if (array_key_exists("Content-Encoding", $request->headers) && $request->headers["Content-Encoding"] === "gzip") {
+        if (array_key_exists("content-encoding", $formattedHeaders) && $formattedHeaders["content-encoding"] === "gzip") {
             $serialized = gzencode($serialized);
         }
 
         return $serialized;
     }
 
+
     public function deserializeResponse($responseBody, $headers)
     {
-        if (!array_key_exists('Content-Type', $headers)) {
+        $formattedHeaders = $this->prepareHeaders($headers);
+        if (!array_key_exists('content-type', $formattedHeaders)) {
             throw new \Exception("HTTP response does not have Content-Type header set");
         }
 
-        $contentType = $headers['Content-Type'];
+        $contentType = $formattedHeaders['content-type'];
         /** @var Serializer $serializer */
         $serializer = $this->serializer($contentType);
 
@@ -66,7 +76,7 @@ class Encoder
             throw new \Exception(sprintf("Unable to deserialize response with Content-Type: %s. Supported encodings are: %s", $contentType, implode(", ", $this->supportedEncodings())));
         }
 
-        if (array_key_exists("Content-Encoding", $headers) && $headers["Content-Encoding"] === "gzip") {
+        if (array_key_exists("content-encoding", $formattedHeaders) && $formattedHeaders["content-encoding"] === "gzip") {
             $responseBody = gzdecode($responseBody);
         }
 

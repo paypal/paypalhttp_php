@@ -2,8 +2,8 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer\Form;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializer\Form;
 use PHPUnit\Framework\TestCase;
 
 class FormTest extends TestCase

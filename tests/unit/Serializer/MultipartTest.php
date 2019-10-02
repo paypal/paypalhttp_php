@@ -2,9 +2,9 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer\Multipart;
-use BraintreeHttp\Serializer\FormPart;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializer\Multipart;
+use PayPalHttp\Serializer\FormPart;
 use PHPUnit\Framework\TestCase;
 
 class MultipartTest extends TestCase

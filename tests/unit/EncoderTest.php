@@ -2,9 +2,9 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\Encoder;
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer;
+use PayPalHttp\Encoder;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializer;
 use PHPUnit\Framework\TestCase;
 
 class EncoderTest extends TestCase

@@ -1,4 +1,4 @@
-## Braintree HttpClient [![Build Status](https://travis-ci.org/braintree/braintreehttp_php.svg?branch=master)](https://travis-ci.org/braintree/braintreehttp_php)
+## PayPal HttpClient [![Build Status](https://travis-ci.org/braintree/braintreehttp_php.svg?branch=master)](https://travis-ci.org/braintree/braintreehttp_php)
 
 PayPalHttp is a generic HTTP Client.
 

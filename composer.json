@@ -1,11 +1,11 @@
 {
-    "name": "braintree/PayPalHttp",
+    "name": "paypal/PayPalHttp",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "Braintree",
-            "email": "code@getbraintree.com"
+            "name": "PayPal",
+            "homepage": "https://github.com/paypal/paypalhttp_php/contributors"
         }
     ],
     "require": {

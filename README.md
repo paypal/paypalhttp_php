@@ -1,4 +1,4 @@
-## PayPal HttpClient [![Build Status](https://travis-ci.org/braintree/braintreehttp_php.svg?branch=master)](https://travis-ci.org/braintree/braintreehttp_php)
+## PayPal HttpClient 
 
 PayPalHttp is a generic HTTP Client.
 
@@ -6,7 +6,7 @@ In it's simplest form, an [`HttpClient`](lib/PayPalHttp/HttpClient.php) exposes 
 
 ### Environment
 
-An [`Environment`](./lib/braintreehttp/environment.rb) describes a domain that hosts a REST API, against which an `HttpClient` will make requests. `Environment` is a simple interface that wraps one method, `baseUrl`.
+An [`Environment`](./lib/PayPalHttp/environment.rb) describes a domain that hosts a REST API, against which an `HttpClient` will make requests. `Environment` is a simple interface that wraps one method, `baseUrl`.
 
 ```php
 $env = new Environment('https://example.com');

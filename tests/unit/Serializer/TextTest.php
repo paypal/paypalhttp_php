@@ -2,8 +2,8 @@
 
 namespace Test\Unit;
 
-use BraintreeHttp\HttpRequest;
-use BraintreeHttp\Serializer\Text;
+use PayPalHttp\HttpRequest;
+use PayPalHttp\Serializer\Text;
 use PHPUnit\Framework\TestCase;
 
 class TextTest extends TestCase

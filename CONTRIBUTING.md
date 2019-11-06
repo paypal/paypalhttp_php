@@ -1,4 +1,4 @@
-# Contribute to the Braintree PHP HttpClient
+# Contribute to the PayPal PHP HttpClient
 
 ### *Pull requests are welcome!*
 

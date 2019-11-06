@@ -1,7 +1,7 @@
 require 'securerandom'
 
 #### releasinator config ####
-configatron.product_name = "BraintreeHttp-PHP"
+configatron.product_name = "PayPalHttp-PHP"
 
 # List of items to confirm from the person releasing.  Required, but empty list is ok.
 configatron.prerelease_checklist_items = [
@@ -17,7 +17,7 @@ configatron.custom_validation_methods = [
   method(:test)
 ]
 
-# there are no separate build steps for BraintreeHttp-PHP, so it is just empty method
+# there are no separate build steps for PayPalHttp-PHP, so it is just empty method
 def build_method
 end
 

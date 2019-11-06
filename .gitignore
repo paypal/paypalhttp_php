@@ -8,6 +8,10 @@ composer.lock
 .idea/**/tasks.xml
 .idea/dictionaries
 
+.idea/codeStyles/Project.xml
+.idea/codeStyles/codeStyleConfig.xml
+.idea/*
+
 # Sensitive or high-churn files:
 .idea/**/dataSources/
 .idea/**/dataSources.ids

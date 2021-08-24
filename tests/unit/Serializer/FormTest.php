@@ -18,7 +18,7 @@ class FormTest extends TestCase
 
         $request = new HttpRequest("/", "POST");
         $request->body = "";
-        $request->headers["content-type"] = "application/x-www-form-urlencoded";
+        $request->headers["Content-Type"] = "application/x-www-form-urlencoded";
 
         $multipart->encode($request);
     }

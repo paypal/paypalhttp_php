@@ -110,7 +110,11 @@ class HttpClient
      * @return array
      */
     public function prepareHeaders($headers){
-        return array_change_key_case($headers);
+        $preparedHeaders = array_change_key_case($headers);
+        if (array_key_exists("content-type", $preparedHeaders)) {
+            $preparedHeaders["content-type"] = strtolower($preparedHeaders["content-type"]);
+        }
+        return $preparedHeaders;
     }
 
     /**

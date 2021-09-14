@@ -139,6 +139,20 @@ class EncoderTest extends TestCase
         $this->assertEquals(["one", "two"], $result->key_two);
     }
 
+    public function testDecode_deserializesResponseWithContentEncodingCaseInsensitive()
+    {
+        $encoder = new Encoder();
+        $responseBody = '{"key_one":"value_one","key_two":["one","two"]}';
+        $headers = [
+            "content-type" => "application/JSON; charset=utf-8"
+        ];
+
+        $result = $encoder->deserializeResponse($responseBody, $headers);
+
+        $this->assertEquals("value_one", $result->key_one);
+        $this->assertEquals(["one", "two"], $result->key_two);
+    }
+
     public function testDecode_ungzipsDataWhenHeaderPresent()
     {
         $encoder = new Encoder();

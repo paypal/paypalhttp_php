@@ -20,7 +20,7 @@ class MultipartTest extends TestCase
 
         $request = new HttpRequest("/", "POST");
         $request->body = "";
-        $request->headers["Content-Type"] = "multipart/form-data";
+        $request->headers["content-type"] = "multipart/form-data";
 
         $multipart->encode($request);
     }
@@ -39,7 +39,7 @@ class MultipartTest extends TestCase
 
         $request = new HttpRequest("/", "POST");
         $request->body = $body;
-        $request->headers["Content-Type"] = "multipart/form-data";
+        $request->headers["content-type"] = "multipart/form-data";
 
         $multipart->encode($request);
     }
@@ -105,7 +105,7 @@ class MultipartTest extends TestCase
 
         $request = new HttpRequest("/", "POST");
         $request->body = $body;
-        $request->headers["Content-Type"] = "multipart/form-data";
+        $request->headers["content-type"] = "multipart/form-data";
 
         $encodedBody = $multipart->encode($request);
         $this->assertContains("boundary=", $request->headers["content-type"]);

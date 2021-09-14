@@ -92,6 +92,25 @@ class HttpClientTest extends TestCase
             ->withRequestBody(WireMock::equalTo("some data")));
     }
 
+    public function testExecute_formsRequestProperlyCaseInsensitive()
+    {
+        $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))
+            ->willReturn(WireMock::aResponse()
+            ->withStatus(200)));
+
+        $client = new HttpClient($this->environment);
+
+        $req = new HttpRequest("/path", "POST");
+        $req->headers["Content-Type"] = "TEXT/plain";
+        $req->body = "some data";
+
+        $client->execute($req);
+
+        $this->wireMock->verify(WireMock::postRequestedFor(WireMock::urlEqualTo("/path"))
+            ->withHeader("Content-Type", WireMock::equalTo("text/plain"))
+            ->withRequestBody(WireMock::equalTo("some data")));
+    }
+
     public function testExecute_setsUserAgentIfNotSet()
     {
         $this->wireMock->stubFor(WireMock::post(WireMock::urlEqualTo("/path"))

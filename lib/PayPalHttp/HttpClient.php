@@ -35,7 +35,6 @@ class HttpClient
     {
         $this->environment = $environment;
         $this->encoder = new Encoder();
-        $this->curlCls = Curl::class;
     }
 
     /**
